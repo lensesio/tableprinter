@@ -8,7 +8,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// Alignment is the aligment type (int).
+// Alignment is the alignment type (int).
 //
 // See `Printer#DefaultColumnAlignment` and `Printer#DefaultColumnAlignment` too.
 type Alignment int
