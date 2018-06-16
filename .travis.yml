@@ -1,0 +1,16 @@
+language: go
+os:
+  - linux
+  - osx
+go:
+  - "go1.8"
+  - "go1.9"
+  - "go1.10"
+go_import_path: github.com/kataras/tableprinter
+env:
+  global:
+    - GOCACHE=off
+install:
+  - go get -t ./...
+script:
+  - go test -v -cover ./...
