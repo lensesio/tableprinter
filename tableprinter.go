@@ -79,6 +79,90 @@ func Print(w io.Writer, v interface{}, filters ...interface{}) int {
 	return Default.Print(w, v, filters...)
 }
 
+// RE_TODO:
+func collect(v reflect.Value, filters []interface{}, circle int) (headers []string, rows [][]string, numbersColsPosition []int, c int) {
+	val := indirect(v)
+	c = circle
+	if val.Kind() == reflect.Slice {
+		// var f []RowFilter
+		for i, n := 0, val.Len(); i < n; i++ {
+			v := indirect(val.Index(i))
+
+			// println(indirect(v).Type().String())
+			//if em := indirect(v); em.Type().Kind() == reflect.Slice {
+
+			h, r, p, cc := collect(v, filters, circle)
+			c = cc
+			headers = append(headers, h...)
+			rows = append(rows, r...)
+			numbersColsPosition = append(numbersColsPosition, p...)
+			headers = append(headers, GetHeaders(v)...)
+			// continue
+			// //	}
+
+			// println("slice element")
+
+			// //if i == 0 {
+			// // make filters once instead of each time for each entry, they all have the same v type.
+			// f = MakeFilters(v, filters...)
+			// headers = append(headers, GetHeaders(v)...)
+			// //}
+
+			// if !v.IsValid() {
+			// 	println("v no valid")
+			// 	rows = append(rows, []string{""})
+			// 	continue
+			// }
+
+			// right, row := GetRow(v)
+			// if i == 0 {
+			// 	numbersColsPosition = right
+			// }
+
+			// if CanAcceptRow(v, f) {
+			// 	println("add row")
+			// 	rows = append(rows, row)
+			// }
+		}
+	} else {
+		// single.
+		newHeaders := extractHeaders(val.Type())
+		if len(newHeaders) == 0 {
+			return
+		}
+		// avoid duplicated headers.
+		for i := range newHeaders {
+			for j := range headers {
+				if headers[j] == newHeaders[i] {
+					continue
+				}
+				headers = append(headers, newHeaders[i])
+			}
+		}
+		right, row := GetRow(val)
+
+		numbersColsPosition = append(numbersColsPosition, right...)
+		if CanAcceptRow(val, MakeFilters(val, filters)) {
+			if circle > 0 {
+				println("here 1")
+				for j := range row {
+					rows[circle] = append(rows[circle], row[j])
+				}
+			} else {
+				println("here 2")
+				rows = append(rows, row)
+
+				// HERE TYPE CHECK.
+			}
+			//	rows = append(rows, row)
+
+			c++
+		}
+	}
+
+	return
+}
+
 // Print usage:
 // Print(writer, tt, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "tt" */
 // 	return t.Visibility != "hidden"
@@ -89,47 +173,7 @@ func (p *Printer) Print(w io.Writer, v interface{}, filters ...interface{}) int 
 	table := tablewriter.NewWriter(w)
 	table.SetAlignment(int(p.DefaultAlignment))
 
-	var (
-		headers             []string
-		rows                [][]string
-		numbersColsPosition []int
-	)
-
-	if val := reflect.Indirect(reflect.ValueOf(v)); val.Kind() == reflect.Slice {
-		var f []RowFilter
-		for i, n := 0, val.Len(); i < n; i++ {
-			v := val.Index(i)
-
-			if i == 0 {
-				// make filters once instead of each time for each entry, they all have the same v type.
-				f = MakeFilters(v, filters)
-				headers = GetHeaders(v.Type())
-			}
-
-			if !v.IsValid() {
-				rows = append(rows, []string{""})
-				continue
-			}
-
-			right, row := GetRow(v)
-			if i == 0 {
-				numbersColsPosition = right
-			}
-
-			if CanAcceptRow(v, f) {
-				rows = append(rows, row)
-			}
-		}
-	} else {
-		// single.
-		headers = GetHeaders(val.Type())
-		right, row := GetRow(val)
-		numbersColsPosition = right
-		if CanAcceptRow(val, MakeFilters(val, filters)) {
-			rows = append(rows, row)
-		}
-
-	}
+	headers, rows, numbersColsPosition, _ := collect(reflect.ValueOf(v), filters, 0)
 
 	if len(headers) == 0 {
 		return 0
@@ -162,10 +206,17 @@ func (p *Printer) Print(w io.Writer, v interface{}, filters ...interface{}) int 
 				break
 			}
 		}
-
 	}
+
 	table.SetColumnAlignment(columnAlignment)
 
 	table.Render()
 	return len(rows)
 }
+
+// TODO:
+// func (p *Printer) PrintHeadList(list interface{}, header string) int {
+// 	n := 0
+//
+// 	return n
+// }

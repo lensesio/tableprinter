@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -17,24 +16,6 @@ const (
 	// CountHeaderTag usage: List []any `header:"MyList,count"`
 	CountHeaderTag = "count"
 )
-
-// GetHeaders accept a type of row and returns the available headers, including the embedded headers (if any).
-func GetHeaders(typ reflect.Type) (headers []string) {
-	for i, n := 0, typ.NumField(); i < n; i++ {
-		f := typ.Field(i)
-
-		header := f.Tag.Get(HeaderTag)
-		// embedded structs are acting like headers appended to the existing(s).
-		if f.Type.Kind() == reflect.Struct && header == InlineHeaderTag {
-			headers = append(headers, GetHeaders(f.Type)...)
-		} else if header != "" {
-			// header is the first part.
-			headers = append(headers, strings.Split(header, ",")[0])
-		}
-	}
-
-	return
-}
 
 // RowFilter is the row's filter, accepts the reflect.Value of the custom type,
 // and returns true if the particular row can be included in the final result.
@@ -93,16 +74,20 @@ func MakeFilters(in reflect.Value, genericFilters ...interface{}) (f []RowFilter
 // GetRow returns the positions of the cells that should be aligned to the right
 // and the list of cells(= the values based on the cell's description) based on the "in" value.
 func GetRow(in reflect.Value) (rightCells []int, cells []string) {
-	v := reflect.Indirect(in)
+	v := indirectValue(in)
+	if v.Kind() != reflect.Struct {
+		return nil, nil
+	}
+
 	typ := v.Type()
 	j := 0
 	for i, n := 0, typ.NumField(); i < n; i++ {
-		cell, ok := GetCell(typ.Field(i))
+		header, ok := extractHeader(typ.Field(i).Tag.Get(HeaderTag))
 		if !ok {
 			continue
 		}
 
-		fieldValue := reflect.Indirect(v.Field(i))
+		fieldValue := indirectValue(v.Field(i))
 
 		if fieldValue.CanInterface() {
 			s := ""
@@ -110,7 +95,7 @@ func GetRow(in reflect.Value) (rightCells []int, cells []string) {
 
 			switch fieldValue.Kind() {
 			case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
-				cell.ValueAsNumber = true
+				header.ValueAsNumber = true
 				s = fmt.Sprintf("%d", vi)
 				break
 			case reflect.Float32, reflect.Float64:
@@ -126,11 +111,11 @@ func GetRow(in reflect.Value) (rightCells []int, cells []string) {
 				break
 			case reflect.Slice, reflect.Array:
 				n := fieldValue.Len()
-				if cell.ValueAsCountable {
+				if header.ValueAsCountable {
 					s = strconv.Itoa(n)
-					cell.ValueAsNumber = true
-				} else if n == 0 && cell.AlternativeValue != "" {
-					s = cell.AlternativeValue
+					header.ValueAsNumber = true
+				} else if n == 0 && header.AlternativeValue != "" {
+					s = header.AlternativeValue
 				} else {
 					for fieldSliceIdx, fieldSliceLen := 0, fieldValue.Len(); fieldSliceIdx < fieldSliceLen; fieldSliceIdx++ {
 						vf := fieldValue.Index(fieldSliceIdx)
@@ -160,12 +145,10 @@ func GetRow(in reflect.Value) (rightCells []int, cells []string) {
 				s = fmt.Sprintf("%v", vi)
 			}
 
-			if cell.ValueAsNumber {
-				// rightCells = append(rightCells, j)
+			if header.ValueAsNumber {
 				sInt64, err := strconv.ParseInt(fmt.Sprintf("%v", s), 10, 64)
 				if err != nil || sInt64 == 0 {
-					// println(err.Error())
-					s = cell.AlternativeValue
+					s = header.AlternativeValue
 					if s == "" {
 						s = "0"
 					}
@@ -177,7 +160,7 @@ func GetRow(in reflect.Value) (rightCells []int, cells []string) {
 			}
 
 			if s == "" {
-				s = cell.AlternativeValue
+				s = header.AlternativeValue
 			}
 
 			cells = append(cells, s)
