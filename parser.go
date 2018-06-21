@@ -12,8 +12,8 @@ import (
 // Header can also contain the necessary information about its values, useful for its presentation
 // such as alignment, alternative value if main is empty, if the row should print the number of elements inside a list or if the column should be formated as number.
 var (
-	Headers map[reflect.Type][]Header // type is the root struct.
-	mu      sync.RWMutex
+	Headers   = make(map[reflect.Type][]Header) // type is the root struct.
+	headersMu sync.RWMutex
 )
 
 // Header contains the name of the header extracted from the struct's `HeaderTag` field tag.
@@ -52,11 +52,12 @@ func extractHeaders(typ reflect.Type) (headers []Header) {
 	}
 
 	// search cache.
-	mu.RLock()
+	headersMu.RLock()
 	if cached, has := Headers[typ]; has {
+		headersMu.RUnlock()
 		return cached
 	}
-	mu.RUnlock()
+	headersMu.RUnlock()
 
 	for i, n := 0, typ.NumField(); i < n; i++ {
 		f := typ.Field(i)
@@ -75,9 +76,9 @@ func extractHeaders(typ reflect.Type) (headers []Header) {
 
 	if len(headers) > 0 {
 		// insert to cache if it's valid table.
-		mu.Lock()
+		headersMu.Lock()
 		Headers[typ] = headers
-		mu.Unlock()
+		headersMu.Unlock()
 	}
 
 	return headers

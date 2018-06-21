@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"sync"
 )
 
 const (
@@ -40,6 +41,11 @@ func CanAcceptRow(in reflect.Value, filters []RowFilter) bool {
 	return acceptRow
 }
 
+var (
+	rowFilters   = make(map[reflect.Type][]RowFilter)
+	rowFiltersMu sync.RWMutex
+)
+
 // MakeFilters accept a value of row and generic filters and returns a set of typed `RowFilter`.
 //
 // Usage:
@@ -47,6 +53,15 @@ func CanAcceptRow(in reflect.Value, filters []RowFilter) bool {
 // filters := MakeFilters(in, func(v MyStruct) bool { return _custom logic here_ })
 // if CanAcceptRow(in, filters) { _custom logic here_ }
 func MakeFilters(in reflect.Value, genericFilters ...interface{}) (f []RowFilter) {
+	typ := in.Type()
+
+	rowFiltersMu.RLock()
+	if cached, has := rowFilters[typ]; has {
+		rowFiltersMu.RUnlock()
+		return cached
+	}
+	rowFiltersMu.RUnlock()
+
 	for _, filter := range genericFilters {
 		filterTyp := reflect.TypeOf(filter)
 		// must be a function that accepts one input argument which is the same of the "v".
@@ -68,16 +83,21 @@ func MakeFilters(in reflect.Value, genericFilters ...interface{}) (f []RowFilter
 		}(filterValue)
 	}
 
+	// insert to cache, even if filters are empty.
+	rowFiltersMu.Lock()
+	rowFilters[typ] = f
+	rowFiltersMu.Unlock()
+
 	return
 }
 
 // GetRow returns the positions of the cells that should be aligned to the right
 // and the list of cells(= the values based on the cell's description) based on the "in" value.
-func GetRow(in reflect.Value) (rightCells []int, cells []string) {
-	v := indirectValue(in)
-	if v.Kind() != reflect.Struct {
-		return nil, nil
-	}
+func GetRow(v reflect.Value) (rightCells []int, cells []string) {
+	// v := indirectValue(in)
+	// if v.Kind() != reflect.Struct {
+	// 	return nil, nil
+	// }
 
 	typ := v.Type()
 	j := 0
@@ -88,84 +108,91 @@ func GetRow(in reflect.Value) (rightCells []int, cells []string) {
 		}
 
 		fieldValue := indirectValue(v.Field(i))
+		c, r := extractCells(j, header, fieldValue)
+		rightCells = append(rightCells, c...)
+		cells = append(cells, r...)
+		j++
+	}
 
-		if fieldValue.CanInterface() {
-			s := ""
-			vi := fieldValue.Interface()
+	return
+}
 
-			switch fieldValue.Kind() {
-			case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
+func extractCells(pos int, header Header, v reflect.Value) (rightCells []int, cells []string) {
+	if v.CanInterface() {
+		s := ""
+		vi := v.Interface()
+
+		switch v.Kind() {
+		case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
+			header.ValueAsNumber = true
+			s = fmt.Sprintf("%d", vi)
+			break
+		case reflect.Float32, reflect.Float64:
+			s = fmt.Sprintf("%.2f", vi)
+			rightCells = append(rightCells, pos)
+			break
+		case reflect.Bool:
+			if vi.(bool) {
+				s = "Yes"
+			} else {
+				s = "No"
+			}
+			break
+		case reflect.Slice, reflect.Array:
+			n := v.Len()
+			if header.ValueAsCountable {
+				s = strconv.Itoa(n)
 				header.ValueAsNumber = true
-				s = fmt.Sprintf("%d", vi)
-				break
-			case reflect.Float32, reflect.Float64:
-				s = fmt.Sprintf("%.2f", vi)
-				rightCells = append(rightCells, j)
-				break
-			case reflect.Bool:
-				if vi.(bool) {
-					s = "Yes"
-				} else {
-					s = "No"
-				}
-				break
-			case reflect.Slice, reflect.Array:
-				n := fieldValue.Len()
-				if header.ValueAsCountable {
-					s = strconv.Itoa(n)
-					header.ValueAsNumber = true
-				} else if n == 0 && header.AlternativeValue != "" {
-					s = header.AlternativeValue
-				} else {
-					for fieldSliceIdx, fieldSliceLen := 0, fieldValue.Len(); fieldSliceIdx < fieldSliceLen; fieldSliceIdx++ {
-						vf := fieldValue.Index(fieldSliceIdx)
-						if vf.CanInterface() {
-							s += fmt.Sprintf("%v", vf.Interface())
-							if hasMore := fieldSliceIdx+1 > fieldSliceLen; hasMore {
-								s += ", "
-							}
-						}
-					}
-				}
-				break
-			default:
-				if viTyp := reflect.TypeOf(vi); viTyp.Kind() == reflect.Struct {
-					rightEmbeddedSlices, rr := GetRow(reflect.ValueOf(vi))
-					if len(rr) > 0 {
-						cells = append(cells, rr...)
-						for range rightEmbeddedSlices {
-							rightCells = append(rightCells, j)
-							j++
-						}
-
-						continue
-					}
-				}
-
-				s = fmt.Sprintf("%v", vi)
-			}
-
-			if header.ValueAsNumber {
-				sInt64, err := strconv.ParseInt(fmt.Sprintf("%v", s), 10, 64)
-				if err != nil || sInt64 == 0 {
-					s = header.AlternativeValue
-					if s == "" {
-						s = "0"
-					}
-				} else {
-					s = nearestThousandFormat(float64(sInt64))
-				}
-
-				rightCells = append(rightCells, j)
-			}
-
-			if s == "" {
+			} else if n == 0 && header.AlternativeValue != "" {
 				s = header.AlternativeValue
+			} else {
+				for fieldSliceIdx, fieldSliceLen := 0, v.Len(); fieldSliceIdx < fieldSliceLen; fieldSliceIdx++ {
+					vf := v.Index(fieldSliceIdx)
+					if vf.CanInterface() {
+						s += fmt.Sprintf("%v", vf.Interface())
+						if hasMore := fieldSliceIdx+1 > fieldSliceLen; hasMore {
+							s += ", "
+						}
+					}
+				}
+			}
+			break
+		default:
+			if viTyp := reflect.TypeOf(vi); viTyp.Kind() == reflect.Struct {
+				rightEmbeddedSlices, rr := GetRow(reflect.ValueOf(vi))
+				if len(rr) > 0 {
+					cells = append(cells, rr...)
+					for range rightEmbeddedSlices {
+						rightCells = append(rightCells, pos)
+						pos++
+					}
+
+					return
+				}
 			}
 
-			cells = append(cells, s)
-			j++
+			s = fmt.Sprintf("%v", vi)
 		}
+
+		if header.ValueAsNumber {
+			sInt64, err := strconv.ParseInt(fmt.Sprintf("%v", s), 10, 64)
+			if err != nil || sInt64 == 0 {
+				s = header.AlternativeValue
+				if s == "" {
+					s = "0"
+				}
+			} else {
+				s = nearestThousandFormat(float64(sInt64))
+			}
+
+			rightCells = append(rightCells, pos)
+		}
+
+		if s == "" {
+			s = header.AlternativeValue
+		}
+
+		cells = append(cells, s)
 	}
 
 	return

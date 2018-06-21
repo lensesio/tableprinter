@@ -6,6 +6,15 @@ import (
 	"github.com/kataras/tableprinter"
 )
 
+type person struct {
+	FirstName string
+	LastName  string
+}
+
+func (p person) String() string {
+	return p.FirstName + " " + p.LastName
+}
+
 func main() {
 	books := []string{
 		"To Kill a Mockingbird (To Kill a Mockingbird) ",
@@ -15,7 +24,23 @@ func main() {
 		"Animal Farm",
 	}
 
-	_ = books
-	/// TODO:
-	// tableprinter.PrintHeadList(os.Stdout, books)
+	tableprinter.PrintHeadList(os.Stdout, books, "Books")
+
+	println()
+
+	numbers := []int{13213, 24554, 376575, 4321321321321, 5654654, 6654654, 787687, 8876876, 9321321}
+
+	tableprinter.PrintHeadList(os.Stdout, numbers, "Numbers")
+
+	println()
+
+	// DISCLAIMER: those are imaginary persons.
+	persons := []person{
+		{"Georgios", "Callas"},
+		{"Ioannis", "Christou"},
+		{"Dimitrios", "Dellis"},
+		{"Nikolaos", "Doukas"},
+	}
+
+	tableprinter.PrintHeadList(os.Stdout, persons, "Persons")
 }
