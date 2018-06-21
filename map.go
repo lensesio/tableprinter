@@ -15,7 +15,7 @@ type Parser interface {
 	// Why not `ParseRows` and `ParseHeaders`?
 	// Because type map has not a specific order, order can change at different runtimes,
 	// so we must keep record on the keys order the first time we fetche them (=> see `MapParser#ParseRows`, `MapParser#ParseHeaders`).
-	Parse(reflect.Value) (headers []string, rows [][]string, numbers []int)
+	Parse(reflect.Value, []RowFilter) (headers []string, rows [][]string, numbers []int)
 }
 
 var (
@@ -40,10 +40,10 @@ type MapParser struct {
 	Debug bool
 }
 
-func (r *MapParser) Parse(v reflect.Value) ([]string, [][]string, []int) {
+func (r *MapParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
 	keys := r.Keys(v)
 	headers := r.ParseHeaders(v, keys)
-	rows, numbers := r.ParseRows(v, keys)
+	rows, numbers := r.ParseRows(v, keys, filters)
 
 	return headers, rows, numbers
 }
@@ -52,7 +52,7 @@ func (r *MapParser) Keys(v reflect.Value) []reflect.Value {
 	return v.MapKeys()
 }
 
-func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value) ([][]string, []int) {
+func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []RowFilter) ([][]string, []int) {
 	// cursors := make(map[int]int) // key = map's key index(although maps don't keep order), value = current index of elements inside the map.
 
 	maxLength := maxMapElemLength(v, keys)
@@ -61,7 +61,6 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value) ([][]string
 	// we can't do that on `GetHeaders` because its values depends on the rows[index] value's type to the table.
 	numbers := make([]int, 0)
 
-	// c := 0
 	for _, key := range keys {
 		// Debug for output:
 		/*
@@ -73,21 +72,47 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value) ([][]string
 			[DBUG]          Nikolaos Doukas
 		*/
 		if r.Debug {
-			logger.Debugf("%s:", tryString(key))
+			logger.Debugf("%s:", stringValue(key))
 		}
 
 		elem := v.MapIndex(key)
 		if elem.Kind() != reflect.Slice {
-			panic("TODO")
+			if !CanAcceptRow(elem, filters) {
+				continue
+			}
+
+			a, row := extractCells(0, emptyHeader, elem)
+			if len(row) == 0 {
+				continue
+			}
+			if r.Debug {
+				logger.Debugf("%s%s", strings.Repeat(" ", len(stringValue(key))), stringValue(elem))
+			}
+			if cap(rows) == 0 {
+				rows = [][]string{row}
+			} else {
+				rows[0] = append(rows[0], row...)
+			}
+
+			numbers = append(numbers, a...)
+			continue
 		}
 
 		for i, n := 0, elem.Len(); i < n; i++ {
 			// cursors[c] = i
 			item := elem.Index(i)
+			if !CanAcceptRow(item, filters) {
+				continue
+			}
+
 			a, row := extractCells(i, emptyHeader, item)
 
+			if len(row) == 0 {
+				continue
+			}
+
 			if r.Debug {
-				logger.Debugf("%s%s", strings.Repeat(" ", len(tryString(key))), tryString(item))
+				logger.Debugf("%s%s", strings.Repeat(" ", len(stringValue(key))), stringValue(item))
 			}
 
 			rows[i] = append(rows[i], row...)
@@ -112,7 +137,7 @@ func (r *MapParser) ParseHeaders(v reflect.Value, keys []reflect.Value) (headers
 			continue
 		}
 
-		if header := tryString(key); header != "" {
+		if header := stringValue(key); header != "" {
 			headers = append(headers, header)
 		}
 	}
@@ -123,7 +148,9 @@ func (r *MapParser) ParseHeaders(v reflect.Value, keys []reflect.Value) (headers
 func maxMapElemLength(v reflect.Value, keys []reflect.Value) (max int) {
 	for _, key := range keys {
 		elem := v.MapIndex(key)
-
+		if elem.Kind() != reflect.Slice {
+			continue
+		}
 		if current := elem.Len(); current > max {
 			max = current
 		}
@@ -132,7 +159,7 @@ func maxMapElemLength(v reflect.Value, keys []reflect.Value) (max int) {
 	return
 }
 
-func tryString(key reflect.Value) string {
+func stringValue(key reflect.Value) string {
 	if !key.CanInterface() {
 		return ""
 	}

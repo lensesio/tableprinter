@@ -303,47 +303,10 @@ func PrintMap(w io.Writer, m interface{}, filters ...interface{}) int {
 
 // DEPRECATED by `map.go`, save the current work and go back to papers.
 func (p *Printer) PrintMap(m interface{}, filters ...interface{}) int {
-	v := indirectValue(reflect.ValueOf(m))
-	if v.Kind() != reflect.Map {
-		return 0
-	}
+	in := reflect.ValueOf(m)
+	f := MakeFilters(in, filters...)
 
-	keys := v.MapKeys()
+	headers, rows, nums := mapParser.Parse(in, f)
 
-	if len(keys) == 0 {
-		return 0
-	}
-
-	if keys[0].Kind() != reflect.String {
-		return -1 // all keys should be as string, they are the header(s).
-	}
-
-	var (
-		headers             []string
-		rows                [][]string
-		numbersColsPosition []int
-	)
-
-	for i, key := range keys {
-		header := key.String()
-		hasAlready := false
-		for _, h := range headers {
-			if h == header {
-				hasAlready = true
-			}
-		}
-		if !hasAlready {
-			headers = append(headers, header)
-		}
-
-		item := v.MapIndex(key)
-
-		if item.Kind() == reflect.Slice {
-			c, r := extractCells(i, emptyHeader, item)
-			rows = append(rows, r)
-			numbersColsPosition = append(numbersColsPosition, c...)
-		}
-	}
-
-	return p.render(headers, rows, numbersColsPosition)
+	return p.render(headers, rows, nums)
 }

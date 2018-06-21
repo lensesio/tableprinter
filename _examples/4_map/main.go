@@ -17,17 +17,17 @@ func (p person) String() string {
 
 func main() {
 	// one header, many string values.
-	// books := map[string][]string{
-	// 	"Title": []string{
-	// 		"To Kill a Mockingbird (To Kill a Mockingbird) ",
-	// 		"The Hunger Games (The Hunger Games) ",
-	// 		"Harry Potter and the Order of the Phoenix (Harry Potter) ",
-	// 		"Pride and Prejudice ",
-	// 		"Animal Farm",
-	// 	},
-	// }
+	books := map[string][]string{
+		"Title": []string{
+			"To Kill a Mockingbird (To Kill a Mockingbird) ",
+			"The Hunger Games (The Hunger Games) ",
+			"Harry Potter and the Order of the Phoenix (Harry Potter) ",
+			"Pride and Prejudice ",
+			"Animal Farm",
+		},
+	}
 
-	// tableprinter.PrintMap(os.Stdout, books)
+	tableprinter.PrintMap(os.Stdout, books)
 
 	println()
 
@@ -40,4 +40,13 @@ func main() {
 	}
 
 	tableprinter.PrintMap(os.Stdout, many)
+
+	println()
+
+	onetoone := map[string]person{
+		"Seller":   person{"Georgios", "Callas"},
+		"Consumer": person{"Dimitrios", "Dellis"},
+	}
+
+	tableprinter.PrintMap(os.Stdout, onetoone)
 }
