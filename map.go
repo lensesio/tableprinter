@@ -56,6 +56,7 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 	// cursors := make(map[int]int) // key = map's key index(although maps don't keep order), value = current index of elements inside the map.
 
 	maxLength := maxMapElemLength(v, keys)
+
 	rows := make([][]string, maxLength, maxLength)
 	// depends on the header size, this is for the entire col aligment but
 	// we can't do that on `GetHeaders` because its values depends on the rows[index] value's type to the table.
@@ -115,11 +116,23 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 				logger.Debugf("%s%s", strings.Repeat(" ", len(stringValue(key))), stringValue(item))
 			}
 
+			// note that we must not check when iterating, because it may be extended before or after,
+			// we must somehow collect these points rx:cx and do that on the final state...
+			// if shouldEmpty {
+			// 	if i == n-1 && i < maxLength-1 {
+			// 		rows[i] = []string{" "}
+			// 	}
+			// }
+
 			rows[i] = append(rows[i], row...)
+			// if i == n-1 && i < maxLength-1 {
+			// 	println("shouldEmpty set to 'true'")
+			// 	shouldEmpty = true
+			// 	// rows[i+1] = []string{" "}
+			// }
+
 			numbers = append(numbers, a...)
 		}
-
-		//	c++
 	}
 
 	return rows, numbers

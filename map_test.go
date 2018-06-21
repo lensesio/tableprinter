@@ -91,3 +91,26 @@ func TestMapParseSingle(t *testing.T) {
 		t.Fatalf("expected rows: %v but got: %v", expectedRows, rows)
 	}
 }
+
+func TestMapEmptiesTODO(t *testing.T) {
+	tt := map[string][]person{
+		"Sellers": []person{
+			{"Georgios", "Callas"},
+			{"Ioannis", "Christou"}},
+		"Consumers": []person{
+			{"Dimitrios", "Dellis"},
+			{"Nikolaos", "Doukas"},
+			{"Ext FName", "Ext LName"}},
+	}
+
+	v := reflect.ValueOf(tt)
+	_, rows, _ := mapParser.Parse(v, nil)
+
+	if len(rows) != 3 {
+		t.Fatalf("all three rows should be printed")
+	}
+
+	if rows[2][0] != " " {
+		t.Fatalf("expected 2:0 to have space, this can be fixed easly but i've not found the complete solution yet because we may have more than two and many empties on different positions, left*c or right*c")
+	}
+}

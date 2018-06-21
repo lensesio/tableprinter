@@ -37,6 +37,12 @@ func main() {
 		"Access 2": []person{
 			{"Dimitrios", "Dellis"},
 			{"Nikolaos", "Doukas"}},
+		// TODO: empty cell can be left, right or between multiple cells.
+		// {"Third", "Name"}},
+		// "Access 3": []person{
+		// 	{"Dimitrios3", "Dellis3"},
+		// 	{"Nikolaos3", "Doukas3"},
+		// 	{"Third3", "Name3"}},
 	}
 
 	tableprinter.PrintMap(os.Stdout, many)
