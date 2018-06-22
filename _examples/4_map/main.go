@@ -36,19 +36,32 @@ func main() {
 			{"Ioannis", "Christou"}},
 		"Access 2": []person{
 			{"Dimitrios", "Dellis"}},
-		"Access 3": []person{{"Dimitrios3", "Dellis3"},
-			{"Nikolaos3", "Doukas3"},
-			{"Third3", "Name3"}},
-		"Access 4": []person{{"Nikolaos", "Doukas"},
-			{"Third", "Name"}},
+		"Access 3": []person{{"Giannhs", "Christou"},
+			{"Giwrgos", "Christou"},
+			{"Oresths", "Christou"}},
+		"Access 4": []person{{"Nikolaos", "Dellis"},
+			{"Dionisis", "Dellis"}},
+		"Access 5": []person{{"Fwths", "Papadopoulos"},
+			{"Xrusostomos", "Papadopoulos"},
+			{"Evriklia", "Papadopoulou"},
+			{"Xrusa", "Papadopoulou"}},
 	}
 
 	/*
-	  ACCESS 1           ACCESS 2           ACCESS 3             ACCESS 4
-	 ------------------ ------------------ -------------------- -----------------
-	  Georgios Callas    Dimitrios Dellis   Dimitrios3 Dellis3   Nikolaos Doukas
-	  Ioannis Christou                      Nikolaos3 Doukas3    Third Name
-	                                        Third3 Name3
+	  ACCESS 1           ACCESS 2           ACCESS 3           ACCESS 4          ACCESS 5
+	 ------------------ ------------------ ------------------ ----------------- --------------------------
+	  Georgios Callas    Dimitrios Dellis   Giannhs Christou   Nikolaos Dellis   Fwths Papadopoulos
+	  Ioannis Christou                      Giwrgos Christou   Dionisis Dellis   Xrusostomos Papadopoulos
+	                                        Oresths Christou                     Evriklia Papadopoulou
+	                                                                             Xrusa Papadopoulou
+	*/
+	/*
+	  ACCESS 3 (4)       ACCESS 4          ACCESS 5                   ACCESS 1           ACCESS 2
+	 ------------------ ----------------- -------------------------- ------------------ ------------------
+	  Giannhs Christou   Nikolaos Dellis   Fwths Papadopoulos         Georgios Callas    Dimitrios Dellis
+	  Giwrgos Christou   Dionisis Dellis   Xrusostomos Papadopoulos   Ioannis Christou
+	  Oresths Christou                     Evriklia Papadopoulou
+	                                       Xrusa Papadopoulou
 	*/
 	tableprinter.PrintMap(os.Stdout, many)
 

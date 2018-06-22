@@ -93,38 +93,57 @@ func TestMapParseSingle(t *testing.T) {
 }
 
 func TestMapEmpties(t *testing.T) {
-	tt := map[string][]person{
+	persons := map[string][]person{
 		"Access 1": []person{{"Georgios", "Callas"},
 			{"Ioannis", "Christou"}},
 		"Access 2": []person{
 			{"Dimitrios", "Dellis"}},
-		"Access 3": []person{{"Dimitrios3", "Dellis3"},
-			{"Nikolaos3", "Doukas3"},
-			{"Third3", "Name3"}},
-		"Access 4": []person{{"Nikolaos", "Doukas"},
-			{"Third", "Name"}},
+		"Access 3": []person{{"Giannhs", "Papadopoulos"},
+			{"Giwrgos", "Papadopoulos"},
+			{"Oresths", "Papadopoulos"}},
 	}
 
-	v := reflect.ValueOf(tt)
-	_, rows, _ := mapParser.Parse(v, nil)
-
-	if len(rows) != 3 {
-		t.Fatalf("all three rows should be printed")
+	_, rows, _ := mapParser.Parse(reflect.ValueOf(persons), nil)
+	if expected, got := len(persons), len(rows); expected != got {
+		t.Fatalf("expected %d rows but got %d", expected, got)
 	}
 
-	if rows[2][0] != " " {
-		t.Fatalf("expected 2:0 to have space")
+	/* Remember: This can be different from runtime to runtime, maps are not always have the same key order(= our headers),
+	 so this test can fail sometimes because it checks the exact pos of those empties (prev tests are written to adjust that behavior, they should always SUCC)
+
+		  ACCESS 1              ACCESS 2                  ACCESS 3
+		 --------------------  ------------------        ----------------------
+	[0]   Georgios Callas[0]    Dimitrios Dellis[0:1]   Giannhs Papadopoulos[0:2]
+	[1]   Ioannis Christou[0:1] EMPTY [1:1]             Giwrgos Papadopoulos[1:2]
+	[2]	  EMPTY [2:0]           EMPTY [2:1]             Oresths Papadopoulos[2]
+	*/
+
+	var (
+		space = " "
+
+		empties = map[int][]int{
+			2: []int{0, 1},
+			1: []int{1},
+		}
+
+		someNotEmpties = map[int][]int{
+			2: []int{2},
+		}
+	)
+
+	for idx, list := range empties {
+		for _, e := range list {
+			if got := rows[idx][e]; got != space {
+				t.Fatalf("expected %d:%d to have space but got: %s", idx, e, got)
+			}
+		}
 	}
 
-	if rows[1][1] != " " {
-		t.Fatalf("expected 1:0 to have space")
-	}
-
-	if rows[2][2] == "" {
-		t.Fatalf("expected 2:2 to be filled")
-	}
-
-	if rows[2][3] != " " {
-		t.Fatalf("expected 2:3 to have space")
+	for idx, list := range someNotEmpties {
+		for _, e := range list {
+			if got := rows[idx][e]; got == space {
+				t.Fatalf("expected %d:%d to have filled value but got space", idx, e)
+			}
+		}
 	}
 }

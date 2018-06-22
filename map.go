@@ -53,6 +53,10 @@ func (r *MapParser) Keys(v reflect.Value) []reflect.Value {
 }
 
 func extendSlice(slice reflect.Value, typ reflect.Type, max int) reflect.Value {
+	if slice.Len() == max {
+		return slice
+	}
+
 	empty := reflect.New(typ).Elem()
 	if slice.Len() == 0 {
 		for max > 0 {
@@ -120,7 +124,10 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 			continue
 		}
 
-		elem = extendSlice(elem, elem.Index(0).Type(), maxLength)
+		if elem.Len() < maxLength {
+			elem = extendSlice(elem, elem.Index(0).Type(), maxLength)
+		}
+
 		for i, n := 0, elem.Len(); i < n; i++ {
 			// cursors[c] = i
 			item := elem.Index(i)
