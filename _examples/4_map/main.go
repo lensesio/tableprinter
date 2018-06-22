@@ -35,16 +35,21 @@ func main() {
 		"Access 1": []person{{"Georgios", "Callas"},
 			{"Ioannis", "Christou"}},
 		"Access 2": []person{
-			{"Dimitrios", "Dellis"},
-			{"Nikolaos", "Doukas"}},
-		// TODO: empty cell can be left, right or between multiple cells.
-		// {"Third", "Name"}},
-		// "Access 3": []person{
-		// 	{"Dimitrios3", "Dellis3"},
-		// 	{"Nikolaos3", "Doukas3"},
-		// 	{"Third3", "Name3"}},
+			{"Dimitrios", "Dellis"}},
+		"Access 3": []person{{"Dimitrios3", "Dellis3"},
+			{"Nikolaos3", "Doukas3"},
+			{"Third3", "Name3"}},
+		"Access 4": []person{{"Nikolaos", "Doukas"},
+			{"Third", "Name"}},
 	}
 
+	/*
+	  ACCESS 1           ACCESS 2           ACCESS 3             ACCESS 4
+	 ------------------ ------------------ -------------------- -----------------
+	  Georgios Callas    Dimitrios Dellis   Dimitrios3 Dellis3   Nikolaos Doukas
+	  Ioannis Christou                      Nikolaos3 Doukas3    Third Name
+	                                        Third3 Name3
+	*/
 	tableprinter.PrintMap(os.Stdout, many)
 
 	println()

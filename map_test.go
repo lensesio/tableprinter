@@ -92,15 +92,17 @@ func TestMapParseSingle(t *testing.T) {
 	}
 }
 
-func TestMapEmptiesTODO(t *testing.T) {
+func TestMapEmpties(t *testing.T) {
 	tt := map[string][]person{
-		"Sellers": []person{
-			{"Georgios", "Callas"},
+		"Access 1": []person{{"Georgios", "Callas"},
 			{"Ioannis", "Christou"}},
-		"Consumers": []person{
-			{"Dimitrios", "Dellis"},
-			{"Nikolaos", "Doukas"},
-			{"Ext FName", "Ext LName"}},
+		"Access 2": []person{
+			{"Dimitrios", "Dellis"}},
+		"Access 3": []person{{"Dimitrios3", "Dellis3"},
+			{"Nikolaos3", "Doukas3"},
+			{"Third3", "Name3"}},
+		"Access 4": []person{{"Nikolaos", "Doukas"},
+			{"Third", "Name"}},
 	}
 
 	v := reflect.ValueOf(tt)
@@ -111,6 +113,18 @@ func TestMapEmptiesTODO(t *testing.T) {
 	}
 
 	if rows[2][0] != " " {
-		t.Fatalf("expected 2:0 to have space, this can be fixed easly but i've not found the complete solution yet because we may have more than two and many empties on different positions, left*c or right*c")
+		t.Fatalf("expected 2:0 to have space")
+	}
+
+	if rows[1][1] != " " {
+		t.Fatalf("expected 1:0 to have space")
+	}
+
+	if rows[2][2] == "" {
+		t.Fatalf("expected 2:2 to be filled")
+	}
+
+	if rows[2][3] != " " {
+		t.Fatalf("expected 2:3 to have space")
 	}
 }

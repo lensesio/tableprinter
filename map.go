@@ -52,9 +52,25 @@ func (r *MapParser) Keys(v reflect.Value) []reflect.Value {
 	return v.MapKeys()
 }
 
+func extendSlice(slice reflect.Value, typ reflect.Type, max int) reflect.Value {
+	empty := reflect.New(typ).Elem()
+	if slice.Len() == 0 {
+		for max > 0 {
+			slice = reflect.Append(slice, empty)
+			max--
+		}
+		return slice
+	}
+
+	for max > slice.Len() {
+		slice = reflect.Append(slice, empty)
+	}
+
+	return slice
+}
+
 func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []RowFilter) ([][]string, []int) {
 	// cursors := make(map[int]int) // key = map's key index(although maps don't keep order), value = current index of elements inside the map.
-
 	maxLength := maxMapElemLength(v, keys)
 
 	rows := make([][]string, maxLength, maxLength)
@@ -99,6 +115,12 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 			continue
 		}
 
+		n := elem.Len()
+		if n == 0 {
+			continue
+		}
+
+		elem = extendSlice(elem, elem.Index(0).Type(), maxLength)
 		for i, n := 0, elem.Len(); i < n; i++ {
 			// cursors[c] = i
 			item := elem.Index(i)
@@ -116,21 +138,7 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 				logger.Debugf("%s%s", strings.Repeat(" ", len(stringValue(key))), stringValue(item))
 			}
 
-			// note that we must not check when iterating, because it may be extended before or after,
-			// we must somehow collect these points rx:cx and do that on the final state...
-			// if shouldEmpty {
-			// 	if i == n-1 && i < maxLength-1 {
-			// 		rows[i] = []string{" "}
-			// 	}
-			// }
-
 			rows[i] = append(rows[i], row...)
-			// if i == n-1 && i < maxLength-1 {
-			// 	println("shouldEmpty set to 'true'")
-			// 	shouldEmpty = true
-			// 	// rows[i+1] = []string{" "}
-			// }
-
 			numbers = append(numbers, a...)
 		}
 	}
