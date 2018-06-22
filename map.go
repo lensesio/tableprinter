@@ -2,53 +2,25 @@ package tableprinter
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
-
-	"github.com/kataras/golog"
 )
-
-/* This is a design proposal, differs from the rest of the implementation, doesn't work as one yet. */
-
-type Parser interface {
-	// Why not `ParseRows` and `ParseHeaders`?
-	// Because type map has not a specific order, order can change at different runtimes,
-	// so we must keep record on the keys order the first time we fetche them (=> see `MapParser#ParseRows`, `MapParser#ParseHeaders`).
-	Parse(reflect.Value, []RowFilter) (headers []string, rows [][]string, numbers []int)
-}
-
-var (
-	logger = golog.New().SetOutput(os.Stdout).SetTimeFormat("").SetLevel("debug")
-
-	mapParser = new(MapParser)
-)
-
-func whichParser(typ reflect.Type) Parser {
-	switch typ.Kind() {
-	case reflect.Map:
-		return mapParser
-	default:
-		// TODO:...
-		return nil
-	}
-}
 
 // Should we have a single parser value its specific types and give input arguments to the funcs, like "keys"
 // or is better to initialize a new parser on each output, so it can be used as a cache?
-type MapParser struct {
+type mapParser struct {
 	Debug bool
 }
 
-func (r *MapParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
-	keys := r.Keys(v)
-	headers := r.ParseHeaders(v, keys)
-	rows, numbers := r.ParseRows(v, keys, filters)
+func (p *mapParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
+	keys := p.Keys(v)
+	headers := p.ParseHeaders(v, keys)
+	rows, numbers := p.ParseRows(v, keys, filters)
 
 	return headers, rows, numbers
 }
 
-func (r *MapParser) Keys(v reflect.Value) []reflect.Value {
+func (p *mapParser) Keys(v reflect.Value) []reflect.Value {
 	return v.MapKeys()
 }
 
@@ -73,7 +45,7 @@ func extendSlice(slice reflect.Value, typ reflect.Type, max int) reflect.Value {
 	return slice
 }
 
-func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []RowFilter) ([][]string, []int) {
+func (p *mapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []RowFilter) ([][]string, []int) {
 	// cursors := make(map[int]int) // key = map's key index(although maps don't keep order), value = current index of elements inside the map.
 	maxLength := maxMapElemLength(v, keys)
 
@@ -92,7 +64,7 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 			[DBUG]          Dimitrios Dellis
 			[DBUG]          Nikolaos Doukas
 		*/
-		if r.Debug {
+		if p.Debug {
 			logger.Debugf("%s:", stringValue(key))
 		}
 
@@ -106,7 +78,7 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 			if len(row) == 0 {
 				continue
 			}
-			if r.Debug {
+			if p.Debug {
 				logger.Debugf("%s%s", strings.Repeat(" ", len(stringValue(key))), stringValue(elem))
 			}
 			if cap(rows) == 0 {
@@ -129,7 +101,6 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 		}
 
 		for i, n := 0, elem.Len(); i < n; i++ {
-			// cursors[c] = i
 			item := elem.Index(i)
 			if !CanAcceptRow(item, filters) {
 				continue
@@ -141,7 +112,7 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 				continue
 			}
 
-			if r.Debug {
+			if p.Debug {
 				logger.Debugf("%s%s", strings.Repeat(" ", len(stringValue(key))), stringValue(item))
 			}
 
@@ -153,7 +124,7 @@ func (r *MapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 	return rows, numbers
 }
 
-func (r *MapParser) ParseHeaders(v reflect.Value, keys []reflect.Value) (headers []string) {
+func (p *mapParser) ParseHeaders(v reflect.Value, keys []reflect.Value) (headers []string) {
 	if len(keys) == 0 {
 		return nil
 	}

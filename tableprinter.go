@@ -7,7 +7,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/olekukonko/tablewriter"
+	"github.com/kataras/golog"
+	"github.com/kataras/tablewriter"
 )
 
 // Alignment is the alignment type (int).
@@ -25,6 +26,8 @@ const (
 	// AlignLeft is the left aligment (3).
 	AlignLeft
 )
+
+var logger = golog.New().SetOutput(os.Stdout).SetTimeFormat("").SetLevel("debug")
 
 // Printer contains some information about the final table presentation.
 // Look its `Print` function for more.
@@ -109,94 +112,6 @@ func New(w io.Writer) *Printer {
 	}
 }
 
-// Print calls and returns the result of the `Default.Print`,
-// take a look at the `Printer#Print` function for details.
-func Print(w io.Writer, v interface{}, filters ...interface{}) int {
-	return New(w).Print(v, filters...)
-}
-
-// RE_TODO:
-
-// type cursor struct {
-// 	headerIndex int
-// }
-
-var emptyStruct = struct{}{}
-
-func collect(v reflect.Value, filters []interface{}) (headers []string, rows [][]string, numbersColsPosition []int) {
-	v = indirectValue(v)
-	kind := v.Kind()
-
-	if kind == reflect.String {
-		// no headers, but rows.
-		rows = append(rows)
-		return
-	}
-
-	if kind == reflect.Slice {
-		var tmp = make(map[reflect.Type]struct{})
-
-		for i, n := 0, v.Len(); i < n; i++ {
-			item := indirectValue(v.Index(i))
-
-			f := MakeFilters(item, filters...)
-			if !CanAcceptRow(item, f) {
-				continue
-			}
-
-			if item.Kind() != reflect.Struct {
-				// if not struct, don't search its fields, just put a row as it's.
-				c, r := extractCells(i, emptyHeader, indirectValue(item))
-				rows = append(rows, r)
-				numbersColsPosition = append(numbersColsPosition, c...)
-				continue
-			}
-
-			c, r := GetRow(item)
-			numbersColsPosition = append(numbersColsPosition, c...)
-
-			itemTyp := item.Type()
-			if _, ok := tmp[itemTyp]; !ok {
-				// make headers once per type.
-				tmp[itemTyp] = emptyStruct
-				hs := extractHeaders(itemTyp)
-				if len(hs) == 0 {
-					continue
-				}
-				for _, h := range hs {
-					headers = append(headers, h.Name)
-				}
-			}
-
-			rows = append(rows, r)
-		}
-
-		return
-	} else if kind == reflect.Struct {
-		hs := extractHeaders(v.Type())
-		if len(hs) == 0 {
-			return
-		}
-
-		for _, h := range hs {
-			headers = append(headers, h.Name)
-		}
-
-		f := MakeFilters(v, filters...)
-		if !CanAcceptRow(v, f) {
-			return
-		}
-
-		c, r := GetRow(v)
-		rows = append(rows, r)
-		numbersColsPosition = c
-	}
-
-	return
-}
-
-var emptyHeaders []string
-
 func (p *Printer) acquireTable() *tablewriter.Table {
 	if v := p.pool.Get(); v != nil {
 		return v.(*tablewriter.Table)
@@ -219,8 +134,10 @@ func (p *Printer) acquireTable() *tablewriter.Table {
 }
 
 func (p *Printer) releaseTable(table *tablewriter.Table) {
+	// ClearHeaders added on kataras/tablewriter version, Changes from the original repository:
+	// https://github.com/olekukonko/tablewriter/compare/master...kataras:master
+	table.ClearHeaders()
 	table.ClearRows()
-	table.SetHeader(emptyHeaders)
 
 	p.pool.Put(table)
 }
@@ -258,6 +175,12 @@ func (p *Printer) render(headers []string, rows [][]string, numbersColsPosition 
 	return len(rows)
 }
 
+// Print calls and returns the result of the `Default.Print`,
+// take a look at the `Printer#Print` function for details.
+func Print(w io.Writer, v interface{}, filters ...interface{}) int {
+	return New(w).Print(v, filters...)
+}
+
 // Print usage:
 // Print(writer, tt, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "tt" */
 // 	return t.Visibility != "hidden"
@@ -265,15 +188,19 @@ func (p *Printer) render(headers []string, rows [][]string, numbersColsPosition 
 //
 // Returns the number of rows finally printed.
 func (p *Printer) Print(in interface{}, filters ...interface{}) int {
-	h, r, c := collect(reflect.ValueOf(in), filters)
-	return p.render(h, r, c)
+	v := indirectValue(reflect.ValueOf(in))
+	f := MakeFilters(v, filters...)
+
+	headers, rows, nums := whichParser(v.Type()).Parse(v, f)
+
+	return p.render(headers, rows, nums)
 }
 
 func PrintHeadList(w io.Writer, list interface{}, header string, filters ...interface{}) int {
 	return New(w).PrintHeadList(list, header, filters...)
 }
 
-var emptyHeader Header
+var emptyHeader StructHeader
 
 func (p *Printer) PrintHeadList(list interface{}, header string, filters ...interface{}) int {
 	items := indirectValue(reflect.ValueOf(list))
@@ -295,18 +222,4 @@ func (p *Printer) PrintHeadList(list interface{}, header string, filters ...inte
 
 	headers := []string{header}
 	return p.render(headers, rows, numbersColsPosition)
-}
-
-func PrintMap(w io.Writer, m interface{}, filters ...interface{}) int {
-	return New(w).PrintMap(m, filters...)
-}
-
-// DEPRECATED by `map.go`, save the current work and go back to papers.
-func (p *Printer) PrintMap(m interface{}, filters ...interface{}) int {
-	in := reflect.ValueOf(m)
-	f := MakeFilters(in, filters...)
-
-	headers, rows, nums := mapParser.Parse(in, f)
-
-	return p.render(headers, rows, nums)
 }

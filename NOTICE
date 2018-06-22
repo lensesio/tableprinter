@@ -1,4 +1,5 @@
 Third Party libraries and components
 ------------------------------------
 
-tablewriter      : MIT                 - https://github.com/olekukonko/tablewriter
+tablewriter      : MIT                 - https://github.com/kataras/tablewriter
+golog            : BSD-3               - https://github.com/kataras/golog

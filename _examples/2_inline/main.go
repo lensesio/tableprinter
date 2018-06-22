@@ -9,15 +9,15 @@ import (
 
 type (
 	book struct {
-		Title       string    `header:"Title"`
-		Description string    `header:"Desc"`
-		Sales       int       `header:"Sales"`
+		Title       string    `header:"title"`
+		Description string    `header:"desc"`
+		Sales       int       `header:"sales"`
 		Publisher   publisher `header:"inline"`
 	}
 
 	publisher struct {
-		Name    string  `header:"Publisher Name"`
-		Country country `header:"Publisher Country"`
+		Name    string  `header:"publisher name"`
+		Country country `header:"publisher country"`
 	}
 
 	country struct {

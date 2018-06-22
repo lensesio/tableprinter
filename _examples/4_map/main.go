@@ -16,6 +16,7 @@ func (p person) String() string {
 }
 
 func main() {
+	printer := tableprinter.New(os.Stdout)
 	// one header, many string values.
 	books := map[string][]string{
 		"Title": []string{
@@ -27,7 +28,7 @@ func main() {
 		},
 	}
 
-	tableprinter.PrintMap(os.Stdout, books)
+	printer.Print(books)
 
 	println()
 
@@ -63,7 +64,7 @@ func main() {
 	  Oresths Christou                     Evriklia Papadopoulou
 	                                       Xrusa Papadopoulou
 	*/
-	tableprinter.PrintMap(os.Stdout, many)
+	printer.Print(many)
 
 	println()
 
@@ -72,5 +73,5 @@ func main() {
 		"Consumer": person{"Dimitrios", "Dellis"},
 	}
 
-	tableprinter.PrintMap(os.Stdout, onetoone)
+	printer.Print(onetoone)
 }

@@ -8,10 +8,10 @@ import (
 
 type (
 	author struct {
-		Name string `header:"Name"`
-		Age  int    `header:"Age"`
+		Name string `header:"name"`
+		Age  int    `header:"age"`
 		// Books -> header. count -> keyword to print the len(Books). none -> alternative value if len(Books) == 0.
-		Books []book `header:"Books,count,none"`
+		Books []book `header:"books,count,none"`
 
 		// inline -> take the supposed `MyStruct`'s struct's fields tagged with headers and append those cells.
 		// Field MyStruct `header:"inline"`

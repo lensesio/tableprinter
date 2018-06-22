@@ -91,33 +91,7 @@ func MakeFilters(in reflect.Value, genericFilters ...interface{}) (f []RowFilter
 	return
 }
 
-// GetRow returns the positions of the cells that should be aligned to the right
-// and the list of cells(= the values based on the cell's description) based on the "in" value.
-func GetRow(v reflect.Value) (rightCells []int, cells []string) {
-	// v := indirectValue(in)
-	// if v.Kind() != reflect.Struct {
-	// 	return nil, nil
-	// }
-
-	typ := v.Type()
-	j := 0
-	for i, n := 0, typ.NumField(); i < n; i++ {
-		header, ok := extractHeader(typ.Field(i).Tag.Get(HeaderTag))
-		if !ok {
-			continue
-		}
-
-		fieldValue := indirectValue(v.Field(i))
-		c, r := extractCells(j, header, fieldValue)
-		rightCells = append(rightCells, c...)
-		cells = append(cells, r...)
-		j++
-	}
-
-	return
-}
-
-func extractCells(pos int, header Header, v reflect.Value) (rightCells []int, cells []string) {
+func extractCells(pos int, header StructHeader, v reflect.Value) (rightCells []int, cells []string) {
 	if v.CanInterface() {
 		s := ""
 		vi := v.Interface()
@@ -159,7 +133,7 @@ func extractCells(pos int, header Header, v reflect.Value) (rightCells []int, ce
 			break
 		default:
 			if viTyp := reflect.TypeOf(vi); viTyp.Kind() == reflect.Struct {
-				rightEmbeddedSlices, rr := GetRow(reflect.ValueOf(vi))
+				rightEmbeddedSlices, rr := getRowFromStruct(reflect.ValueOf(vi))
 				if len(rr) > 0 {
 					cells = append(cells, rr...)
 					for range rightEmbeddedSlices {

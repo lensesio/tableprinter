@@ -34,7 +34,7 @@ func TestMapParse(t *testing.T) {
 	)
 
 	v := reflect.ValueOf(tt)
-	headers, rows, _ := mapParser.Parse(v, nil)
+	headers, rows, _ := MapParser.Parse(v, nil)
 
 	// check the length.
 	if expected, got := len(expectedHeaders), len(headers); expected != got {
@@ -70,7 +70,7 @@ func TestMapParseSingle(t *testing.T) {
 	)
 
 	v := reflect.ValueOf(tt)
-	headers, rows, _ := mapParser.Parse(v, nil)
+	headers, rows, _ := MapParser.Parse(v, nil)
 
 	// check the length.
 	if expected, got := len(expectedHeaders), len(headers); expected != got {
@@ -103,7 +103,7 @@ func TestMapEmpties(t *testing.T) {
 			{"Oresths", "Papadopoulos"}},
 	}
 
-	_, rows, _ := mapParser.Parse(reflect.ValueOf(persons), nil)
+	_, rows, _ := MapParser.Parse(reflect.ValueOf(persons), nil)
 	if expected, got := len(persons), len(rows); expected != got {
 		t.Fatalf("expected %d rows but got %d", expected, got)
 	}
