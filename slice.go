@@ -26,7 +26,7 @@ func (p *sliceParser) Parse(v reflect.Value, filters []RowFilter) (headers []str
 			continue
 		}
 
-		c, r := getRowFromStruct(item)
+		r, c := getRowFromStruct(item)
 		nums = append(nums, c...)
 
 		itemTyp := item.Type()

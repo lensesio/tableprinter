@@ -133,7 +133,7 @@ func extractCells(pos int, header StructHeader, v reflect.Value) (rightCells []i
 			break
 		default:
 			if viTyp := reflect.TypeOf(vi); viTyp.Kind() == reflect.Struct {
-				rightEmbeddedSlices, rr := getRowFromStruct(reflect.ValueOf(vi))
+				rr, rightEmbeddedSlices := getRowFromStruct(reflect.ValueOf(vi))
 				if len(rr) > 0 {
 					cells = append(cells, rr...)
 					for range rightEmbeddedSlices {

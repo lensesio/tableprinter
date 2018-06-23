@@ -32,7 +32,7 @@ var logger = golog.New().SetOutput(os.Stdout).SetTimeFormat("").SetLevel("debug"
 // Printer contains some information about the final table presentation.
 // Look its `Print` function for more.
 type Printer struct {
-	// out can not change during its work because the `acquire/release table` must work with only one output source,
+	// out can not change during its work because the `acquire/release table` must work with only one output target,
 	// a new printer should be declared for a different output.
 	out io.Writer
 
@@ -53,9 +53,12 @@ type Printer struct {
 	NumbersAlignment Alignment
 
 	RowLengthTitle func(int) bool
+	AllowRowsOnly  bool // if true then `Print/Render` will print the headers even if parsed rows where no found. Useful for putting rows to a table manually.
 
-	pool sync.Pool
+	table *tablewriter.Table
 }
+
+var pool sync.Pool
 
 // Default is the default Table Printer.
 var Default = Printer{
@@ -83,6 +86,8 @@ var Default = Printer{
 		// if more than 3 then show the length of rows.
 		return rowsLength > 3
 	},
+
+	AllowRowsOnly: true,
 }
 
 func New(w io.Writer) *Printer {
@@ -109,55 +114,39 @@ func New(w io.Writer) *Printer {
 		NumbersAlignment: Default.NumbersAlignment,
 
 		RowLengthTitle: Default.RowLengthTitle,
+		AllowRowsOnly:  Default.AllowRowsOnly,
 	}
 }
 
+func Render(w io.Writer, headers []string, rows [][]string, numbersColsPosition []int, reset bool) int {
+	return New(w).Render(headers, rows, numbersColsPosition, reset)
+}
+
 func (p *Printer) acquireTable() *tablewriter.Table {
-	if v := p.pool.Get(); v != nil {
-		return v.(*tablewriter.Table)
+	table := p.table
+	if table == nil {
+		table = tablewriter.NewWriter(p.out)
+
+		// these properties can change until first `Print/Render` call.
+		table.SetAlignment(int(p.DefaultAlignment))
+		table.SetAutoFormatHeaders(p.AutoFormatHeaders)
+		table.SetAutoWrapText(p.AutoWrapText)
+		table.SetBorders(tablewriter.Border{Top: p.BorderTop, Left: p.BorderLeft, Right: p.BorderRight, Bottom: p.BorderBottom})
+		table.SetHeaderLine(p.HeaderLine)
+		table.SetHeaderAlignment(int(p.HeaderAlignment))
+		table.SetRowLine(p.RowLine)
+		table.SetColumnSeparator(p.ColumnSeparator)
+		table.SetNewLine(p.NewLine)
+		table.SetCenterSeparator(p.CenterSeparator)
+
+		p.table = table
 	}
-
-	table := tablewriter.NewWriter(p.out)
-
-	table.SetAlignment(int(p.DefaultAlignment))
-	table.SetAutoFormatHeaders(p.AutoFormatHeaders)
-	table.SetAutoWrapText(p.AutoWrapText)
-	table.SetBorders(tablewriter.Border{Top: p.BorderTop, Left: p.BorderLeft, Right: p.BorderRight, Bottom: p.BorderBottom})
-	table.SetHeaderLine(p.HeaderLine)
-	table.SetHeaderAlignment(int(p.HeaderAlignment))
-	table.SetRowLine(p.RowLine)
-	table.SetColumnSeparator(p.ColumnSeparator)
-	table.SetNewLine(p.NewLine)
-	table.SetCenterSeparator(p.CenterSeparator)
 
 	return table
 }
 
-func (p *Printer) releaseTable(table *tablewriter.Table) {
-	// ClearHeaders added on kataras/tablewriter version, Changes from the original repository:
-	// https://github.com/olekukonko/tablewriter/compare/master...kataras:master
-	table.ClearHeaders()
-	table.ClearRows()
-
-	p.pool.Put(table)
-}
-
-func (p *Printer) render(headers []string, rows [][]string, numbersColsPosition []int) int {
-	table := p.acquireTable()
-	defer p.releaseTable(table)
-
-	if len(headers) == 0 {
-		return 0
-	}
-
-	if p.RowLengthTitle != nil && p.RowLengthTitle(len(rows)) {
-		headers[0] = fmt.Sprintf("%s (%d) ", headers[0], len(rows))
-	}
-
-	table.SetHeader(headers)
-	table.AppendBulk(rows)
-
-	columnAlignment := make([]int, len(headers), len(headers))
+func (p *Printer) calculateColumnAlignment(numbersColsPosition []int, size int) []int {
+	columnAlignment := make([]int, size, size)
 	for i := range columnAlignment {
 		columnAlignment[i] = int(p.DefaultAlignment)
 
@@ -169,10 +158,64 @@ func (p *Printer) render(headers []string, rows [][]string, numbersColsPosition 
 		}
 	}
 
-	table.SetColumnAlignment(columnAlignment)
+	return columnAlignment
+}
+
+func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition []int, reset bool) int {
+	table := p.acquireTable()
+
+	if reset {
+		// ClearHeaders added on kataras/tablewriter version, Changes from the original repository:
+		// https://github.com/olekukonko/tablewriter/compare/master...kataras:master
+		table.ClearHeaders()
+		table.ClearRows()
+	}
+
+	if len(headers) > 0 {
+		if p.RowLengthTitle != nil && p.RowLengthTitle(len(rows)) {
+			headers[0] = fmt.Sprintf("%s (%d) ", headers[0], len(rows))
+		}
+
+		table.SetHeader(headers)
+	} else if !p.AllowRowsOnly {
+		return 0 // if not allow to print anything without headers, then exit.
+	}
+
+	table.AppendBulk(rows)
+	table.SetColumnAlignment(p.calculateColumnAlignment(numbersColsPosition, len(headers)))
 
 	table.Render()
-	return len(rows)
+	return table.NumLines()
+}
+
+// func PrintHeaders(w io.Writer, v interface{}) int {
+// 	return New(w).PrintHeaders(v)
+// }
+// func (p *Printer) PrintHeaders(v interface{}) int {
+
+// 	if len(headers) > 0 {
+// 		if p.RowLengthTitle != nil && p.RowLengthTitle(len(rows)) {
+// 			headers[0] = fmt.Sprintf("%s (%d) ", headers[0], len(rows))
+// 		}
+
+// 		table.SetHeader(headers)
+// 	} else if !p.AllowRowsOnly {
+// 		return 0 // if not allow to print anything without headers, then exit.
+// 	}
+
+// }
+
+func RenderRow(w io.Writer, row []string, numbersColsPosition []int) int {
+	return New(w).RenderRow(row, numbersColsPosition)
+}
+
+func (p *Printer) RenderRow(row []string, numbersColsPosition []int) int {
+	table := p.acquireTable()
+	table.SetColumnAlignment(p.calculateColumnAlignment(numbersColsPosition, len(row)))
+
+	// RenderRowOnce added on kataras/tablewriter version, Changes from the original repository:
+	// https://github.com/olekukonko/tablewriter/compare/master...kataras:master
+	return table.RenderRowOnce(row)
 }
 
 // Print calls and returns the result of the `Default.Print`,
@@ -193,7 +236,7 @@ func (p *Printer) Print(in interface{}, filters ...interface{}) int {
 
 	headers, rows, nums := whichParser(v.Type()).Parse(v, f)
 
-	return p.render(headers, rows, nums)
+	return p.Render(headers, rows, nums, true)
 }
 
 func PrintHeadList(w io.Writer, list interface{}, header string, filters ...interface{}) int {
@@ -221,5 +264,5 @@ func (p *Printer) PrintHeadList(list interface{}, header string, filters ...inte
 	}
 
 	headers := []string{header}
-	return p.render(headers, rows, numbersColsPosition)
+	return p.Render(headers, rows, numbersColsPosition, true)
 }

@@ -19,9 +19,19 @@ var (
 type structParser struct{}
 
 func (p *structParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
+	if !CanAcceptRow(v, filters) {
+		return nil, nil, nil
+	}
+
+	row, nums := p.ParseRow(v)
+
+	return p.ParseHeaders(v), [][]string{row}, nums
+}
+
+func (p *structParser) ParseHeaders(v reflect.Value) []string {
 	hs := extractHeadersFromStruct(v.Type())
 	if len(hs) == 0 {
-		return nil, nil, nil
+		return nil
 	}
 
 	headers := make([]string, len(hs))
@@ -29,13 +39,11 @@ func (p *structParser) Parse(v reflect.Value, filters []RowFilter) ([]string, []
 		headers[idx] = hs[idx].Name
 	}
 
-	if !CanAcceptRow(v, filters) {
-		return nil, nil, nil
-	}
+	return headers
+}
 
-	nums, row := getRowFromStruct(v)
-
-	return headers, [][]string{row}, nums
+func (p *structParser) ParseRow(v reflect.Value) ([]string, []int) {
+	return getRowFromStruct(v)
 }
 
 // StructHeader contains the name of the header extracted from the struct's `HeaderTag` field tag.
@@ -119,7 +127,7 @@ func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 
 // getRowFromStruct returns the positions of the cells that should be aligned to the right
 // and the list of cells(= the values based on the cell's description) based on the "in" value.
-func getRowFromStruct(v reflect.Value) (rightCells []int, cells []string) {
+func getRowFromStruct(v reflect.Value) (cells []string, rightCells []int) {
 	typ := v.Type()
 	j := 0
 	for i, n := 0, typ.NumField(); i < n; i++ {
