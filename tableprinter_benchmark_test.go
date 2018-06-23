@@ -48,11 +48,11 @@ func buildBooks(n int) []book {
 	return books
 }
 
-// quite fast: using pool to acquire/release table & using cache for types that already scanned for headers.
+// quite fast: using one table per printer & using cache for types that already scanned for headers.
 // goos: linux
 // goarch: amd64
 // pkg: github.com/kataras/tableprinter
-// BenchmarkPrint-8           50000             33998 ns/op            5110 B/op        223 allocs/op
+// BenchmarkPrint-8           50000             30166 ns/op            5529 B/op        223 allocs/op
 // PASS
 // ok      github.com/kataras/tableprinter 2.919s
 func BenchmarkPrint(b *testing.B) {

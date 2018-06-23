@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"sync"
 
 	"github.com/kataras/golog"
 	"github.com/kataras/tablewriter"
@@ -57,8 +56,6 @@ type Printer struct {
 
 	table *tablewriter.Table
 }
-
-var pool sync.Pool
 
 // Default is the default Table Printer.
 var Default = Printer{
