@@ -60,14 +60,18 @@ type StructHeader struct {
 }
 
 func extractHeaderFromStructField(f reflect.StructField, pos int, tagsOnly bool) (header StructHeader, ok bool) {
+	if f.PkgPath != "" {
+		return // ignore unexported fields.
+	}
+
 	headerTag := f.Tag.Get(HeaderTag)
 	if headerTag == "" && tagsOnly {
 		return emptyHeader, false
 	}
 
 	// embedded structs are acting like headers appended to the existing(s).
-	if f.Type.Kind() == reflect.Struct && headerTag == InlineHeaderTag {
-		return extractHeaderFromStructField(f, pos, tagsOnly)
+	if f.Type.Kind() == reflect.Struct {
+		return emptyHeader, false
 	} else if headerTag != "" {
 		if header, ok := extractHeaderFromTag(headerTag); ok {
 			header.Position = pos
@@ -100,8 +104,14 @@ func extractHeadersFromStruct(typ reflect.Type, tagsOnly bool) (headers []Struct
 
 	for i, n := 0, typ.NumField(); i < n; i++ {
 		f := typ.Field(i)
-		header, ok := extractHeaderFromStructField(f, i, tagsOnly)
-		if ok {
+		if f.Type.Kind() == reflect.Struct && f.Tag.Get(HeaderTag) == InlineHeaderTag {
+			hs := extractHeadersFromStruct(f.Type, tagsOnly)
+			headers = append(headers, hs...)
+			continue
+		}
+
+		header, _ := extractHeaderFromStructField(f, i, tagsOnly)
+		if header.Name != "" {
 			headers = append(headers, header)
 		}
 	}
@@ -150,13 +160,25 @@ func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 func getRowFromStruct(v reflect.Value, tagsOnly bool) (cells []string, rightCells []int) {
 	typ := v.Type()
 	j := 0
+
 	for i, n := 0, typ.NumField(); i < n; i++ {
-		header, ok := extractHeaderFromStructField(typ.Field(i), i, tagsOnly)
+
+		f := typ.Field(i)
+		header, ok := extractHeaderFromStructField(f, j, tagsOnly)
 		if !ok {
+			if f.Type.Kind() == reflect.Struct && f.Tag.Get(HeaderTag) == InlineHeaderTag {
+				fieldValue := indirectValue(v.Field(i))
+				c, rc := getRowFromStruct(fieldValue, tagsOnly)
+				rightCells = append(rightCells, rc...)
+				cells = append(cells, c...)
+				j++
+			}
+
 			continue
 		}
 
 		fieldValue := indirectValue(v.Field(i))
+
 		c, r := extractCells(j, header, fieldValue, tagsOnly)
 		rightCells = append(rightCells, c...)
 		cells = append(cells, r...)

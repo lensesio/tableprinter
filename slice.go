@@ -29,13 +29,14 @@ func (p *sliceParser) Parse(v reflect.Value, filters []RowFilter) (headers []str
 		}
 
 		r, c := getRowFromStruct(item, p.TagsOnly)
+
 		nums = append(nums, c...)
 
 		itemTyp := item.Type()
 		if _, ok := tmp[itemTyp]; !ok {
 			// make headers once per type.
 			tmp[itemTyp] = emptyStruct
-			hs := extractHeadersFromStruct(itemTyp, true)
+			hs := extractHeadersFromStruct(itemTyp, p.TagsOnly)
 			if len(hs) == 0 {
 				continue
 			}

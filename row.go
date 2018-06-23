@@ -132,7 +132,12 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 			}
 			break
 		default:
-			if viTyp := reflect.TypeOf(vi); viTyp.Kind() == reflect.Struct {
+			switch t := vi.(type) {
+			// Give priority to String() string functions inside the struct, if it's there then it's the whole cell string,
+			// otherwise if it's struct it's the fields if TagsOnly == false, useful for dynamic maps.
+			case fmt.Stringer:
+				s = fmt.Sprintf("%s", t.String())
+			case struct{}:
 				rr, rightEmbeddedSlices := getRowFromStruct(reflect.ValueOf(vi), whenStructTagsOnly)
 				if len(rr) > 0 {
 					cells = append(cells, rr...)
@@ -143,9 +148,10 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 
 					return
 				}
+			default:
+				s = fmt.Sprintf("%v", vi)
 			}
 
-			s = fmt.Sprintf("%v", vi)
 		}
 
 		if header.ValueAsNumber {
