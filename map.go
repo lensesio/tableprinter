@@ -9,7 +9,8 @@ import (
 // Should we have a single parser value its specific types and give input arguments to the funcs, like "keys"
 // or is better to initialize a new parser on each output, so it can be used as a cache?
 type mapParser struct {
-	Debug bool
+	TagsOnly bool
+	Debug    bool
 }
 
 func (p *mapParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
@@ -74,7 +75,7 @@ func (p *mapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 				continue
 			}
 
-			a, row := extractCells(0, emptyHeader, elem)
+			a, row := extractCells(0, emptyHeader, elem, p.TagsOnly)
 			if len(row) == 0 {
 				continue
 			}
@@ -106,7 +107,7 @@ func (p *mapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 				continue
 			}
 
-			a, row := extractCells(i, emptyHeader, item)
+			a, row := extractCells(i, emptyHeader, item, p.TagsOnly)
 
 			if len(row) == 0 {
 				continue

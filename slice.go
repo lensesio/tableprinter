@@ -4,7 +4,9 @@ import (
 	"reflect"
 )
 
-type sliceParser struct{}
+type sliceParser struct {
+	TagsOnly bool
+}
 
 var emptyStruct = struct{}{}
 
@@ -20,20 +22,20 @@ func (p *sliceParser) Parse(v reflect.Value, filters []RowFilter) (headers []str
 
 		if item.Kind() != reflect.Struct {
 			// if not struct, don't search its fields, just put a row as it's.
-			c, r := extractCells(i, emptyHeader, indirectValue(item))
+			c, r := extractCells(i, emptyHeader, indirectValue(item), p.TagsOnly)
 			rows = append(rows, r)
 			nums = append(nums, c...)
 			continue
 		}
 
-		r, c := getRowFromStruct(item)
+		r, c := getRowFromStruct(item, p.TagsOnly)
 		nums = append(nums, c...)
 
 		itemTyp := item.Type()
 		if _, ok := tmp[itemTyp]; !ok {
 			// make headers once per type.
 			tmp[itemTyp] = emptyStruct
-			hs := extractHeadersFromStruct(itemTyp)
+			hs := extractHeadersFromStruct(itemTyp, true)
 			if len(hs) == 0 {
 				continue
 			}

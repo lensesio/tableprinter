@@ -236,6 +236,19 @@ func (p *Printer) Print(in interface{}, filters ...interface{}) int {
 	return p.Render(headers, rows, nums, true)
 }
 
+func PrintJSON(w io.Writer, in []byte, filters ...interface{}) int {
+	return New(w).PrintJSON(in, filters...)
+}
+
+func (p *Printer) PrintJSON(in interface{}, filters ...interface{}) int {
+	v := indirectValue(reflect.ValueOf(in))
+	f := MakeFilters(v, filters...)
+
+	headers, rows, nums := JSONParser.Parse(v, f)
+
+	return p.Render(headers, rows, nums, true)
+}
+
 func PrintHeadList(w io.Writer, list interface{}, header string, filters ...interface{}) int {
 	return New(w).PrintHeadList(list, header, filters...)
 }
@@ -255,7 +268,7 @@ func (p *Printer) PrintHeadList(list interface{}, header string, filters ...inte
 
 	for i, n := 0, items.Len(); i < n; i++ {
 		item := items.Index(i)
-		c, r := extractCells(i, emptyHeader, indirectValue(item))
+		c, r := extractCells(i, emptyHeader, indirectValue(item), true)
 		rows = append(rows, r)
 		numbersColsPosition = append(numbersColsPosition, c...)
 	}

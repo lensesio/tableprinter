@@ -91,7 +91,7 @@ func MakeFilters(in reflect.Value, genericFilters ...interface{}) (f []RowFilter
 	return
 }
 
-func extractCells(pos int, header StructHeader, v reflect.Value) (rightCells []int, cells []string) {
+func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsOnly bool) (rightCells []int, cells []string) {
 	if v.CanInterface() {
 		s := ""
 		vi := v.Interface()
@@ -133,7 +133,7 @@ func extractCells(pos int, header StructHeader, v reflect.Value) (rightCells []i
 			break
 		default:
 			if viTyp := reflect.TypeOf(vi); viTyp.Kind() == reflect.Struct {
-				rr, rightEmbeddedSlices := getRowFromStruct(reflect.ValueOf(vi))
+				rr, rightEmbeddedSlices := getRowFromStruct(reflect.ValueOf(vi), whenStructTagsOnly)
 				if len(rr) > 0 {
 					cells = append(cells, rr...)
 					for range rightEmbeddedSlices {

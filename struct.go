@@ -16,7 +16,9 @@ var (
 	structsHeadersMu sync.RWMutex
 )
 
-type structParser struct{}
+type structParser struct {
+	TagsOnly bool
+}
 
 func (p *structParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
 	if !CanAcceptRow(v, filters) {
@@ -29,7 +31,7 @@ func (p *structParser) Parse(v reflect.Value, filters []RowFilter) ([]string, []
 }
 
 func (p *structParser) ParseHeaders(v reflect.Value) []string {
-	hs := extractHeadersFromStruct(v.Type())
+	hs := extractHeadersFromStruct(v.Type(), true)
 	if len(hs) == 0 {
 		return nil
 	}
@@ -43,7 +45,7 @@ func (p *structParser) ParseHeaders(v reflect.Value) []string {
 }
 
 func (p *structParser) ParseRow(v reflect.Value) ([]string, []int) {
-	return getRowFromStruct(v)
+	return getRowFromStruct(v, p.TagsOnly)
 }
 
 // StructHeader contains the name of the header extracted from the struct's `HeaderTag` field tag.
@@ -57,7 +59,32 @@ type StructHeader struct {
 	AlternativeValue string
 }
 
-func extractHeadersFromStruct(typ reflect.Type) (headers []StructHeader) {
+func extractHeaderFromStructField(f reflect.StructField, pos int, tagsOnly bool) (header StructHeader, ok bool) {
+	headerTag := f.Tag.Get(HeaderTag)
+	if headerTag == "" && tagsOnly {
+		return emptyHeader, false
+	}
+
+	// embedded structs are acting like headers appended to the existing(s).
+	if f.Type.Kind() == reflect.Struct && headerTag == InlineHeaderTag {
+		return extractHeaderFromStructField(f, pos, tagsOnly)
+	} else if headerTag != "" {
+		if header, ok := extractHeaderFromTag(headerTag); ok {
+			header.Position = pos
+			return header, true
+		}
+
+	} else if !tagsOnly {
+		return StructHeader{
+			Position: pos,
+			Name:     f.Name,
+		}, true
+	}
+
+	return emptyHeader, false
+}
+
+func extractHeadersFromStruct(typ reflect.Type, tagsOnly bool) (headers []StructHeader) {
 	typ = indirectType(typ)
 	if typ.Kind() != reflect.Struct {
 		return
@@ -73,16 +100,9 @@ func extractHeadersFromStruct(typ reflect.Type) (headers []StructHeader) {
 
 	for i, n := 0, typ.NumField(); i < n; i++ {
 		f := typ.Field(i)
-
-		headerTag := f.Tag.Get(HeaderTag)
-		// embedded structs are acting like headers appended to the existing(s).
-		if f.Type.Kind() == reflect.Struct && headerTag == InlineHeaderTag {
-			headers = append(headers, extractHeadersFromStruct(f.Type)...)
-		} else if headerTag != "" {
-			if header, ok := extractHeaderFromTag(headerTag); ok {
-				header.Position = i
-				headers = append(headers, header)
-			}
+		header, ok := extractHeaderFromStructField(f, i, tagsOnly)
+		if ok {
+			headers = append(headers, header)
 		}
 	}
 
@@ -127,17 +147,17 @@ func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 
 // getRowFromStruct returns the positions of the cells that should be aligned to the right
 // and the list of cells(= the values based on the cell's description) based on the "in" value.
-func getRowFromStruct(v reflect.Value) (cells []string, rightCells []int) {
+func getRowFromStruct(v reflect.Value, tagsOnly bool) (cells []string, rightCells []int) {
 	typ := v.Type()
 	j := 0
 	for i, n := 0, typ.NumField(); i < n; i++ {
-		header, ok := extractHeaderFromTag(typ.Field(i).Tag.Get(HeaderTag))
+		header, ok := extractHeaderFromStructField(typ.Field(i), i, tagsOnly)
 		if !ok {
 			continue
 		}
 
 		fieldValue := indirectValue(v.Field(i))
-		c, r := extractCells(j, header, fieldValue)
+		c, r := extractCells(j, header, fieldValue, tagsOnly)
 		rightCells = append(rightCells, c...)
 		cells = append(cells, r...)
 		j++

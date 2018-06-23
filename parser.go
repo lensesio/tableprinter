@@ -12,9 +12,10 @@ type Parser interface {
 }
 
 var (
-	StructParser = new(structParser)
-	SliceParser  = new(sliceParser)
-	MapParser    = new(mapParser)
+	StructParser = &structParser{TagsOnly: false}
+	SliceParser  = &sliceParser{TagsOnly: false}
+	MapParser    = &mapParser{TagsOnly: false, Debug: false}
+	JSONParser   = new(jsonParser)
 )
 
 func whichParser(typ reflect.Type) Parser {
