@@ -35,6 +35,9 @@ var availableParsers = map[reflect.Kind]Parser{
 
 // RegisterParser sets a parser based on its kind of type.
 // It overrides any existing element on that kind, each Parser reflects a single kind of type.
+//
+// It can be used at the initialization of the program to register a custom Parser, see `StructParser` for example.
+// It's not designed to be safe to use it inside many different routines at the same time.
 func RegisterParser(kind reflect.Kind, parser Parser) {
 	availableParsers[kind] = parser
 }
