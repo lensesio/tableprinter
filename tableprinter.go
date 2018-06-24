@@ -87,6 +87,9 @@ var Default = Printer{
 	AllowRowsOnly: true,
 }
 
+// New creates and initializes a Printer with the default values based on the "w" target writer.
+//
+// See its `Print`, `PrintHeadList` too.
 func New(w io.Writer) *Printer {
 	return &Printer{
 		out: w,
@@ -113,10 +116,6 @@ func New(w io.Writer) *Printer {
 		RowLengthTitle: Default.RowLengthTitle,
 		AllowRowsOnly:  Default.AllowRowsOnly,
 	}
-}
-
-func Render(w io.Writer, headers []string, rows [][]string, numbersColsPosition []int, reset bool) int {
-	return New(w).Render(headers, rows, numbersColsPosition, reset)
 }
 
 func (p *Printer) acquireTable() *tablewriter.Table {
@@ -158,6 +157,23 @@ func (p *Printer) calculateColumnAlignment(numbersColsPosition []int, size int) 
 	return columnAlignment
 }
 
+// Render prints a table based on the rules of this "p" Printer.
+//
+// It's used to customize manually the parts of a table like the headers.
+// If need to append a row after its creation you should create a new `Printer` instance by calling the `New` function
+// and use its `RenderRow` instead, because the "w" writer is different on each package-level printer function.
+//
+// Returns the total amount of rows written to the table.
+func Render(w io.Writer, headers []string, rows [][]string, numbersColsPosition []int, reset bool) int {
+	return New(w).Render(headers, rows, numbersColsPosition, reset)
+}
+
+// Render prints a table based on the rules of this "p" Printer.
+//
+// It's used to customize manually the parts of a table like the headers.
+// It can be used side by side with the `RenderRow`, first and once `Render`, after and maybe many `RenderRow`.
+//
+// Returns the total amount of rows written to the table.
 func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition []int, reset bool) int {
 	table := p.acquireTable()
 
@@ -185,27 +201,10 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 	return table.NumLines()
 }
 
-// func PrintHeaders(w io.Writer, v interface{}) int {
-// 	return New(w).PrintHeaders(v)
-// }
-// func (p *Printer) PrintHeaders(v interface{}) int {
-
-// 	if len(headers) > 0 {
-// 		if p.RowLengthTitle != nil && p.RowLengthTitle(len(rows)) {
-// 			headers[0] = fmt.Sprintf("%s (%d) ", headers[0], len(rows))
-// 		}
-
-// 		table.SetHeader(headers)
-// 	} else if !p.AllowRowsOnly {
-// 		return 0 // if not allow to print anything without headers, then exit.
-// 	}
-
-// }
-
-func RenderRow(w io.Writer, row []string, numbersColsPosition []int) int {
-	return New(w).RenderRow(row, numbersColsPosition)
-}
-
+// RenderRow prints a row based on the same alignment rules to the last `Print` or `Render`.
+// It can be used to live update the table.
+//
+// Returns the total amount of rows written to the table.
 func (p *Printer) RenderRow(row []string, numbersColsPosition []int) int {
 	table := p.acquireTable()
 	table.SetColumnAlignment(p.calculateColumnAlignment(numbersColsPosition, len(row)))
@@ -215,18 +214,25 @@ func (p *Printer) RenderRow(row []string, numbersColsPosition []int) int {
 	return table.RenderRowOnce(row)
 }
 
-// Print calls and returns the result of the `Default.Print`,
-// take a look at the `Printer#Print` function for details.
+// Print outputs whatever "in" value passed as a table to the "w",
+// filters cna be used to control what rows can be visible or hidden.
+// Usage:
+// Print(os.Stdout, values, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "tt" */
+// 	return t.Visibility != "hidden"
+// })
+//
+// Returns the total amount of rows written to the table.
 func Print(w io.Writer, v interface{}, filters ...interface{}) int {
 	return New(w).Print(v, filters...)
 }
 
-// Print usage:
-// Print(writer, tt, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "tt" */
+// Print outputs whatever "in" value passed as a table, filters can be used to control what rows can be visible and which not.
+// Usage:
+// Print(values, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "tt" */
 // 	return t.Visibility != "hidden"
 // })
 //
-// Returns the number of rows finally printed.
+// Returns the total amount of rows written to the table.
 func (p *Printer) Print(in interface{}, filters ...interface{}) int {
 	v := indirectValue(reflect.ValueOf(in))
 	f := MakeFilters(v, filters...)
@@ -236,10 +242,18 @@ func (p *Printer) Print(in interface{}, filters ...interface{}) int {
 	return p.Render(headers, rows, nums, true)
 }
 
+// PrintJSON prints the json-bytes as a table to the "w",
+// filters cna be used to control what rows can be visible or hidden.
+//
+// Returns the total amount of rows written to the table.
 func PrintJSON(w io.Writer, in []byte, filters ...interface{}) int {
 	return New(w).PrintJSON(in, filters...)
 }
 
+// PrintJSON prints the json-bytes as a table,
+// filters cna be used to control what rows can be visible or hidden.
+//
+// Returns the total amount of rows written to the table.
 func (p *Printer) PrintJSON(in interface{}, filters ...interface{}) int {
 	v := indirectValue(reflect.ValueOf(in))
 	f := MakeFilters(v, filters...)
@@ -249,12 +263,26 @@ func (p *Printer) PrintJSON(in interface{}, filters ...interface{}) int {
 	return p.Render(headers, rows, nums, true)
 }
 
+// PrintHeadList prints whatever "list" as a table to the "w" with a single header.
+// The "list" should be a slice of something, however
+// that list can also contain different type of values, even interface{}, the function will parse each of its elements differently if needed.
+//
+// It can be used when want to print a simple list of string, i.e names []string, a single column each time.
+//
+// Returns the total amount of rows written to the table.
 func PrintHeadList(w io.Writer, list interface{}, header string, filters ...interface{}) int {
 	return New(w).PrintHeadList(list, header, filters...)
 }
 
 var emptyHeader StructHeader
 
+// PrintHeadList prints whatever "list" as a table with a single header.
+// The "list" should be a slice of something, however
+// that list can also contain different type of values, even interface{}, the function will parse each of its elements differently if needed.
+//
+// It can be used when want to print a simple list of string, i.e names []string, a single column each time.
+//
+// Returns the total amount of rows written to the table.
 func (p *Printer) PrintHeadList(list interface{}, header string, filters ...interface{}) int {
 	items := indirectValue(reflect.ValueOf(list))
 	if items.Kind() != reflect.Slice {

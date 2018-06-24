@@ -4,13 +4,18 @@ import (
 	"reflect"
 )
 
+// Parser should be implemented by all available reflect-based parsers.
+//
+// See `StructParser`(struct{} type), `SliceParser`(slice[] type), `MapParser`(map type) and `JSONParser`(any type).
+// Manually registering of a parser is a valid option (although not a recommendation), see `RegisterParser` for more.
 type Parser interface {
 	// Why not `ParseRows` and `ParseHeaders`?
 	// Because type map has not a specific order, order can change at different runtimes,
 	// so we must keep record on the keys order the first time we fetche them (=> see `MapParser#ParseRows`, `MapParser#ParseHeaders`).
-	Parse(reflect.Value, []RowFilter) (headers []string, rows [][]string, numbers []int)
+	Parse(v reflect.Value, filters []RowFilter) (headers []string, rows [][]string, numbers []int)
 }
 
+// The built'n type parsers, all except `JSONParser` are directly linked to the `Print/PrintHeadList` functions.
 var (
 	StructParser = &structParser{TagsOnly: true}
 	SliceParser  = &sliceParser{TagsOnly: true}
@@ -19,17 +24,19 @@ var (
 )
 
 func whichParser(typ reflect.Type) Parser {
-	switch typ.Kind() {
-	case reflect.Struct:
-		return StructParser
-	case reflect.Slice:
-		return SliceParser
-	case reflect.Map:
-		return MapParser
-	default:
-		// TODO:...
-		return nil
-	}
+	return availableParsers[typ.Kind()] // it can return nil.
+}
+
+var availableParsers = map[reflect.Kind]Parser{
+	reflect.Struct: StructParser,
+	reflect.Slice:  SliceParser,
+	reflect.Map:    MapParser,
+}
+
+// RegisterParser sets a parser based on its kind of type.
+// It overrides any existing element on that kind, each Parser reflects a single kind of type.
+func RegisterParser(kind reflect.Kind, parser Parser) {
+	availableParsers[kind] = parser
 }
 
 // like reflect.Indirect but for types and reflect.Interface types too.
