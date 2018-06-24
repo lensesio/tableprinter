@@ -41,7 +41,7 @@ func (p *sliceParser) ParseRows(v reflect.Value, filters []RowFilter) (rows [][]
 }
 
 func (p *sliceParser) ParseHeaders(v reflect.Value) (headers []string) {
-	var tmp = make(map[reflect.Type]struct{})
+	tmp := make(map[reflect.Type]struct{})
 
 	for i, n := 0, v.Len(); i < n; i++ {
 		item := indirectValue(v.Index(i))

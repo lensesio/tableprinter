@@ -23,5 +23,11 @@ func getMyJSONBytes() []byte {
 
 func main() {
 	b := getMyJSONBytes()
+
+	/*
+	  FIRST NAME   LAST NAME
+	 ------------ -----------
+	  Georgios     Callas
+	*/
 	tableprinter.PrintJSON(os.Stdout, b)
 }

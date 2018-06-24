@@ -52,7 +52,7 @@ func buildBooks(n int) []book {
 // goos: linux
 // goarch: amd64
 // pkg: github.com/kataras/tableprinter
-// BenchmarkPrint-8           50000             30166 ns/op            5529 B/op        223 allocs/op
+// BenchmarkPrint-8          100000             22545 ns/op            3973 B/op        181 allocs/op
 // PASS
 // ok      github.com/kataras/tableprinter 2.919s
 func BenchmarkPrint(b *testing.B) {

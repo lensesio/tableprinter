@@ -28,6 +28,15 @@ func main() {
 		},
 	}
 
+	/*
+	  TITLE (5)
+	 -----------------------------------------------------------
+	  To Kill a Mockingbird (To Kill a Mockingbird)
+	  The Hunger Games (The Hunger Games)
+	  Harry Potter and the Order of the Phoenix (Harry Potter)
+	  Pride and Prejudice
+	  Animal Farm
+	*/
 	printer.Print(books)
 
 	println()
@@ -73,5 +82,10 @@ func main() {
 		"Consumer": person{"Dimitrios", "Dellis"},
 	}
 
+	/*
+	  SELLER            CONSUMER
+	 ----------------- ------------------
+	  Georgios Callas   Dimitrios Dellis
+	*/
 	printer.Print(onetoone)
 }

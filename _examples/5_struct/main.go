@@ -14,5 +14,10 @@ type person struct {
 func main() {
 	person := person{"Georgios", "Callas"}
 
+	/*
+	  FIRST NAME   LAST NAME
+	 ------------ -----------
+	  Georgios     Callas
+	*/
 	tableprinter.Print(os.Stdout, person)
 }

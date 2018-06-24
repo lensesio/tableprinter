@@ -31,7 +31,7 @@ func (c country) String() string {
 }
 
 func main() {
-	n := 42
+	n := 5
 	books := make([]book, n, n)
 	var b book
 
@@ -47,5 +47,14 @@ func main() {
 		books[i-1] = b
 	}
 
+	/*
+	  TITLE (5)          DESC                     SALES   PUBLISHER NAME
+	 ------------------ ------------------------ ------- ------------------
+	  Title for Book 1   Description for Book 1   12.0K   Publisher Name 1
+	  Title for Book 2   Description for Book 2   24.0K   Publisher Name 2
+	  Title for Book 3   Description for Book 3   36.0K   Publisher Name 3
+	  Title for Book 4   Description for Book 4   48.0K   Publisher Name 4
+	  Title for Book 5   Description for Book 5   60.0K   Publisher Name 5
+	*/
 	tableprinter.Print(os.Stdout, books)
 }
