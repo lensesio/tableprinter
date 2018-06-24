@@ -10,12 +10,15 @@ type sliceParser struct {
 
 var emptyStruct = struct{}{}
 
-func (p *sliceParser) Parse(v reflect.Value, filters []RowFilter) (headers []string, rows [][]string, nums []int) {
-	var tmp = make(map[reflect.Type]struct{})
+func (p *sliceParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
+	headers := p.ParseHeaders(v)
+	rows, nums := p.ParseRows(v, filters)
+	return headers, rows, nums
+}
 
+func (p *sliceParser) ParseRows(v reflect.Value, filters []RowFilter) (rows [][]string, nums []int) {
 	for i, n := 0, v.Len(); i < n; i++ {
 		item := indirectValue(v.Index(i))
-
 		if !CanAcceptRow(item, filters) {
 			continue
 		}
@@ -27,11 +30,23 @@ func (p *sliceParser) Parse(v reflect.Value, filters []RowFilter) (headers []str
 			nums = append(nums, c...)
 			continue
 		}
-
 		r, c := getRowFromStruct(item, p.TagsOnly)
 
 		nums = append(nums, c...)
 
+		rows = append(rows, r)
+	}
+
+	return
+}
+
+func (p *sliceParser) ParseHeaders(v reflect.Value) (headers []string) {
+	var tmp = make(map[reflect.Type]struct{})
+
+	for i, n := 0, v.Len(); i < n; i++ {
+		item := indirectValue(v.Index(i))
+
+		// no filters.
 		itemTyp := item.Type()
 		if _, ok := tmp[itemTyp]; !ok {
 			// make headers once per type.
@@ -44,9 +59,9 @@ func (p *sliceParser) Parse(v reflect.Value, filters []RowFilter) (headers []str
 				headers = append(headers, h.Name)
 			}
 		}
-
-		rows = append(rows, r)
 	}
+
+	tmp = nil
 
 	return
 }
