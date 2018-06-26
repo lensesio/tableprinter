@@ -3,14 +3,12 @@ package tableprinter
 import (
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 // Should we have a single parser value its specific types and give input arguments to the funcs, like "keys"
 // or is better to initialize a new parser on each output, so it can be used as a cache?
 type mapParser struct {
 	TagsOnly bool
-	Debug    bool
 }
 
 func (p *mapParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
@@ -56,18 +54,6 @@ func (p *mapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 	numbers := make([]int, 0)
 
 	for _, key := range keys {
-		// Debug for output:
-		/*
-			[DBUG] Sellers:
-			[DBUG]        Georgios Callas
-			[DBUG]        Ioannis Christou
-			[DBUG] Consumers:
-			[DBUG]          Dimitrios Dellis
-			[DBUG]          Nikolaos Doukas
-		*/
-		if p.Debug {
-			logger.Debugf("%s:", stringValue(key))
-		}
 
 		elem := v.MapIndex(key)
 		if elem.Kind() != reflect.Slice {
@@ -79,9 +65,7 @@ func (p *mapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 			if len(row) == 0 {
 				continue
 			}
-			if p.Debug {
-				logger.Debugf("%s%s", strings.Repeat(" ", len(stringValue(key))), stringValue(elem))
-			}
+
 			if cap(rows) == 0 {
 				rows = [][]string{row}
 			} else {
@@ -111,10 +95,6 @@ func (p *mapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 
 			if len(row) == 0 {
 				continue
-			}
-
-			if p.Debug {
-				logger.Debugf("%s%s", strings.Repeat(" ", len(stringValue(key))), stringValue(item))
 			}
 
 			rows[i] = append(rows[i], row...)

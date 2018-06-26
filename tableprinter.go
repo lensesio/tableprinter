@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/kataras/golog"
 	"github.com/kataras/tablewriter"
 )
 
@@ -25,8 +24,6 @@ const (
 	// AlignLeft is the left aligment (3).
 	AlignLeft
 )
-
-var logger = golog.New().SetOutput(os.Stdout).SetTimeFormat("").SetLevel("debug")
 
 // Printer contains some information about the final table presentation.
 // Look its `Print` function for more.

@@ -19,7 +19,7 @@ type Parser interface {
 var (
 	StructParser = &structParser{TagsOnly: true}
 	SliceParser  = &sliceParser{TagsOnly: true}
-	MapParser    = &mapParser{TagsOnly: false, Debug: false}
+	MapParser    = &mapParser{TagsOnly: false}
 	JSONParser   = new(jsonParser)
 )
 

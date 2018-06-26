@@ -65,8 +65,23 @@ func MakeFilters(in reflect.Value, genericFilters ...interface{}) (f []RowFilter
 	for _, filter := range genericFilters {
 		filterTyp := reflect.TypeOf(filter)
 		// must be a function that accepts one input argument which is the same of the "v".
-		if filterTyp.Kind() != reflect.Func || filterTyp.NumIn() != 1 /* not receiver */ || filterTyp.In(0) != in.Type() {
+		if filterTyp.Kind() != reflect.Func || filterTyp.NumIn() != 1 /* not receiver */ {
 			continue
+		}
+
+		if filterInTyp := filterTyp.In(0); filterInTyp != in.Type() {
+			goodElementType := false
+			if in.Kind() == reflect.Slice {
+				if in.Len() > 0 {
+					if filterInTyp == in.Index(0).Type() {
+						// the slice contains element that is the same as the filter's func, we must allow that for slices because slice parser executes that(correctly) per ELEMENT.
+						goodElementType = true
+					}
+				}
+			}
+			if !goodElementType {
+				continue
+			}
 		}
 
 		// must be a function that returns a single boolean value.
