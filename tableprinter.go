@@ -39,11 +39,15 @@ type Printer struct {
 
 	HeaderLine      bool
 	HeaderAlignment Alignment
+	HeaderColors    []tablewriter.Colors
+	HeaderBgColor   int
+	HeaderFgColor   int
 
 	RowLine         bool
 	ColumnSeparator string
 	NewLine         string
 	CenterSeparator string
+	RowSeparator    string
 
 	DefaultAlignment Alignment // see `NumbersAlignment` too.
 	NumbersAlignment Alignment
@@ -68,11 +72,11 @@ var Default = Printer{
 	HeaderLine:      true,
 	HeaderAlignment: AlignLeft,
 
-	RowLine:         false, /* it could be true as well */
-	ColumnSeparator: " ",
-	NewLine:         "\n",
-	CenterSeparator: " ", /* it could be empty as well */
-
+	RowLine:          false, /* it could be true as well */
+	ColumnSeparator:  " ",
+	NewLine:          "\n",
+	CenterSeparator:  " ", /* it could be empty as well */
+	RowSeparator:     tablewriter.ROW,
 	DefaultAlignment: AlignLeft,
 	NumbersAlignment: AlignRight,
 
@@ -106,6 +110,7 @@ func New(w io.Writer) *Printer {
 		ColumnSeparator: Default.ColumnSeparator,
 		NewLine:         Default.NewLine,
 		CenterSeparator: Default.CenterSeparator,
+		RowSeparator:    Default.RowSeparator,
 
 		DefaultAlignment: Default.DefaultAlignment,
 		NumbersAlignment: Default.NumbersAlignment,
@@ -131,6 +136,7 @@ func (p *Printer) acquireTable() *tablewriter.Table {
 		table.SetColumnSeparator(p.ColumnSeparator)
 		table.SetNewLine(p.NewLine)
 		table.SetCenterSeparator(p.CenterSeparator)
+		table.SetRowSeparator(p.RowSeparator)
 
 		p.table = table
 	}
@@ -179,6 +185,7 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 		// https://github.com/olekukonko/tablewriter/compare/master...kataras:master
 		table.ClearHeaders()
 		table.ClearRows()
+		p.HeaderColors = nil
 	}
 
 	if len(headers) > 0 {
@@ -187,6 +194,20 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 		}
 
 		table.SetHeader(headers)
+
+		// colors must set after headers, depends on the number of headers.
+		if l := len(p.HeaderColors); l > 0 && l == len(headers) {
+			// dev set header color for each header, can panic if not match
+			table.SetHeaderColor(p.HeaderColors...)
+		} else if bg, fg := p.HeaderBgColor, p.HeaderFgColor; bg > 0 || fg > 0 {
+			colors := make([]tablewriter.Colors, len(headers))
+			for i := range headers {
+				colors[i] = tablewriter.Color(bg, fg)
+			}
+			p.HeaderColors = colors
+			table.SetHeaderColor(colors...)
+		}
+
 	} else if !p.AllowRowsOnly {
 		return 0 // if not allow to print anything without headers, then exit.
 	}
