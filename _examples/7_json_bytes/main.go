@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/kataras/tableprinter"
+	"github.com/landoop/tableprinter"
 )
 
 func getMyJSONBytes() []byte {

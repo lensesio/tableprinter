@@ -4,8 +4,8 @@ import (
 	"os"
 	"sort"
 
-	"github.com/kataras/tableprinter"
 	"github.com/kataras/tablewriter"
+	"github.com/landoop/tableprinter"
 )
 
 type person struct {

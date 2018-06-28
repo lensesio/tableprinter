@@ -4,7 +4,7 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/kataras/tableprinter"
+	"github.com/landoop/tableprinter"
 )
 
 // Person example.

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/kataras/tableprinter"
+	"github.com/landoop/tableprinter"
 )
 
 type (
