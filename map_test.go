@@ -18,9 +18,9 @@ func TestMapParse(t *testing.T) {
 	t.Parallel()
 
 	tt := map[string][]person{
-		"Sellers": []person{{"Georgios", "Callas"},
+		"Sellers": {{"Georgios", "Callas"},
 			{"Ioannis", "Christou"}},
-		"Consumers": []person{
+		"Consumers": {
 			{"Dimitrios", "Dellis"},
 			{"Nikolaos", "Doukas"}},
 	}
@@ -60,13 +60,13 @@ func TestMapParseSingle(t *testing.T) {
 	t.Parallel()
 
 	tt := map[string]person{
-		"Seller":   person{"Georgios", "Callas"},
-		"Consumer": person{"Dimitrios", "Dellis"},
+		"Seller":   {"Georgios", "Callas"},
+		"Consumer": {"Dimitrios", "Dellis"},
 	}
 
 	var (
 		expectedHeaders = []string{"Seller", "Consumer"}
-		expectedRows    = [][]string{[]string{"Georgios Callas", "Dimitrios Dellis"}}
+		expectedRows    = [][]string{{"Georgios Callas", "Dimitrios Dellis"}}
 	)
 
 	v := reflect.ValueOf(tt)
@@ -101,11 +101,11 @@ func TestMapParseSingle(t *testing.T) {
 
 func TestMapEmpties(t *testing.T) {
 	persons := map[string][]person{
-		"Access 1": []person{{"Georgios", "Callas"},
+		"Access 1": {{"Georgios", "Callas"},
 			{"Ioannis", "Christou"}},
-		"Access 2": []person{
+		"Access 2": {
 			{"Dimitrios", "Dellis"}},
-		"Access 3": []person{{"Giannhs", "Papadopoulos"},
+		"Access 3": {{"Giannhs", "Papadopoulos"},
 			{"Giwrgos", "Papadopoulos"},
 			{"Oresths", "Papadopoulos"}},
 	}
@@ -129,12 +129,12 @@ func TestMapEmpties(t *testing.T) {
 		space = " "
 
 		empties = map[int][]int{
-			2: []int{0, 1},
-			1: []int{1},
+			2: {0, 1},
+			1: {1},
 		}
 
 		someNotEmpties = map[int][]int{
-			2: []int{2},
+			2: {2},
 		}
 	)
 

@@ -19,7 +19,7 @@ func main() {
 	printer := tableprinter.New(os.Stdout)
 	// one header, many string values.
 	books := map[string][]string{
-		"Title": []string{
+		"Title": {
 			"To Kill a Mockingbird (To Kill a Mockingbird) ",
 			"The Hunger Games (The Hunger Games) ",
 			"Harry Potter and the Order of the Phoenix (Harry Potter) ",
@@ -42,16 +42,16 @@ func main() {
 	println()
 
 	many := map[string][]person{
-		"Access 1": []person{{"Georgios", "Callas"},
+		"Access 1": {{"Georgios", "Callas"},
 			{"Ioannis", "Christou"}},
-		"Access 2": []person{
+		"Access 2": {
 			{"Dimitrios", "Dellis"}},
-		"Access 3": []person{{"Giannhs", "Christou"},
+		"Access 3": {{"Giannhs", "Christou"},
 			{"Giwrgos", "Christou"},
 			{"Oresths", "Christou"}},
-		"Access 4": []person{{"Nikolaos", "Dellis"},
+		"Access 4": {{"Nikolaos", "Dellis"},
 			{"Dionisis", "Dellis"}},
-		"Access 5": []person{{"Fwths", "Papadopoulos"},
+		"Access 5": {{"Fwths", "Papadopoulos"},
 			{"Xrusostomos", "Papadopoulos"},
 			{"Evriklia", "Papadopoulou"},
 			{"Xrusa", "Papadopoulou"}},
@@ -78,8 +78,8 @@ func main() {
 	println()
 
 	onetoone := map[string]person{
-		"Seller":   person{"Georgios", "Callas"},
-		"Consumer": person{"Dimitrios", "Dellis"},
+		"Seller":   {"Georgios", "Callas"},
+		"Consumer": {"Dimitrios", "Dellis"},
 	}
 
 	/*

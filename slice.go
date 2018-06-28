@@ -61,7 +61,5 @@ func (p *sliceParser) ParseHeaders(v reflect.Value) (headers []string) {
 		}
 	}
 
-	tmp = nil
-
 	return
 }
