@@ -171,6 +171,10 @@ func Render(w io.Writer, headers []string, rows [][]string, numbersColsPosition 
 	return New(w).Render(headers, rows, numbersColsPosition, reset)
 }
 
+// TODO: auto-remove headers and columns based on the user's terminal width (static),
+// if `getTerminalWidth() == maxWidth` then don't both, show the expected based on the `PrintXXX` func.
+const maxWidth = 7680
+
 // Render prints a table based on the rules of this "p" Printer.
 //
 // It's used to customize manually the parts of a table like the headers.
