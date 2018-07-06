@@ -17,7 +17,7 @@ func nearestThousandFormat(num float64) string {
 	if math.Abs(num) < 999.5 {
 		xNum := formatNumber(num)
 		xNumStr := xNum[:len(xNum)-3]
-		return string(xNumStr)
+		return xNumStr
 	}
 
 	xNum := formatNumber(num)

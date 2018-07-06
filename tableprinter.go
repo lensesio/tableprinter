@@ -43,12 +43,13 @@ type Printer struct {
 	HeaderBgColor   int
 	HeaderFgColor   int
 
-	RowLine         bool
-	ColumnSeparator string
-	NewLine         string
-	CenterSeparator string
-	RowSeparator    string
-
+	RowLine          bool
+	ColumnSeparator  string
+	NewLine          string
+	CenterSeparator  string
+	RowSeparator     string
+	RowCharLimit     int
+	RowTextWrap      bool      // if RowCharLimit > 0 && RowTextWrap == true then wrap the line otherwise replace the trailing with "...".
 	DefaultAlignment Alignment // see `NumbersAlignment` too.
 	NumbersAlignment Alignment
 
@@ -77,6 +78,8 @@ var Default = Printer{
 	NewLine:          "\n",
 	CenterSeparator:  " ", /* it could be empty as well */
 	RowSeparator:     tablewriter.ROW,
+	RowCharLimit:     60,
+	RowTextWrap:      true,
 	DefaultAlignment: AlignLeft,
 	NumbersAlignment: AlignRight,
 
@@ -111,6 +114,8 @@ func New(w io.Writer) *Printer {
 		NewLine:         Default.NewLine,
 		CenterSeparator: Default.CenterSeparator,
 		RowSeparator:    Default.RowSeparator,
+		RowCharLimit:    Default.RowCharLimit,
+		RowTextWrap:     Default.RowTextWrap,
 
 		DefaultAlignment: Default.DefaultAlignment,
 		NumbersAlignment: Default.NumbersAlignment,
@@ -145,7 +150,7 @@ func (p *Printer) acquireTable() *tablewriter.Table {
 }
 
 func (p *Printer) calculateColumnAlignment(numbersColsPosition []int, size int) []int {
-	columnAlignment := make([]int, size, size)
+	columnAlignment := make([]int, size)
 	for i := range columnAlignment {
 		columnAlignment[i] = int(p.DefaultAlignment)
 
@@ -172,8 +177,61 @@ func Render(w io.Writer, headers []string, rows [][]string, numbersColsPosition 
 }
 
 // TODO: auto-remove headers and columns based on the user's terminal width (static),
-// if `getTerminalWidth() == maxWidth` then don't both, show the expected based on the `PrintXXX` func.
+// if `getTerminalWidth() == maxWidth` then don't bother, show the expected based on the `PrintXXX` func.
+//
+// Note that the font size of the terminal is customizable, so don't expect it to work precisely everywhere.
 const maxWidth = 7680
+
+func (p *Printer) calcWidth(k []string) (rowWidth int) {
+	for _, r := range k {
+		w := tablewriter.DisplayWidth(r) + len(p.ColumnSeparator) + len(p.CenterSeparator) + len(p.RowSeparator)
+		rowWidth += w
+	}
+
+	return
+}
+
+// it "works" but not always, need more research or just let the new `RowCharLimit` and `RowTextWrap` do their job to avoid big table on small terminal.
+func (p *Printer) formatTableBasedOnWidth(headers []string, rows [][]string, fontSize int) ([]string, [][]string) {
+	totalWidthPreCalculated := p.calcWidth(headers)
+	var rowsWidth int
+
+	for _, rs := range rows {
+		w := p.calcWidth(rs)
+		if w > rowsWidth {
+			rowsWidth = w
+		}
+	}
+
+	if rowsWidth > totalWidthPreCalculated {
+		totalWidthPreCalculated = rowsWidth
+	}
+
+	pd := float64(fontSize/9) * 1.2
+	pdTrail := fontSize + fontSize/3
+	totalWidthPreCalculated = int(float64(totalWidthPreCalculated)*pd + float64(pdTrail))
+
+	termWidth := int(getTerminalWidth())
+	if totalWidthPreCalculated > termWidth {
+		dif := totalWidthPreCalculated - termWidth
+		difSpace := int(float64(fontSize) * 0.6)
+		// remove the last element of the rows and the last header.
+		if dif >= difSpace {
+			for idx, r := range rows {
+				rLastIdx := len(r) - 1
+				r = append(r[:rLastIdx], r[rLastIdx+1:]...)
+				rows[idx] = r
+			}
+			if len(headers) > 0 {
+				hLastIdx := len(headers) - 1
+				headers = append(headers[:hLastIdx], headers[hLastIdx+1:]...)
+			}
+			return p.formatTableBasedOnWidth(headers, rows, fontSize)
+		}
+	}
+
+	return headers, rows
+}
 
 // Render prints a table based on the rules of this "p" Printer.
 //
@@ -191,6 +249,8 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 		table.ClearRows()
 		p.HeaderColors = nil
 	}
+
+	// headers, rows = p.formatTableBasedOnWidth(headers, rows, 11)
 
 	if len(headers) > 0 {
 		if p.RowLengthTitle != nil && p.RowLengthTitle(len(rows)) {
@@ -214,6 +274,23 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 
 	} else if !p.AllowRowsOnly {
 		return 0 // if not allow to print anything without headers, then exit.
+	}
+
+	if p.RowCharLimit > 0 {
+		for i, rs := range rows {
+			for j, r := range rs {
+				if len(r) > p.RowCharLimit {
+					newRow := r[0:p.RowCharLimit] // without "60th"  if RowCharLimit is 60.
+					if p.RowTextWrap {
+						newRow += "\n" + r[p.RowCharLimit:]
+					} else {
+						newRow += "..."
+					}
+					rs[j] = newRow
+				}
+			}
+			rows[i] = rs
+		}
 	}
 
 	table.AppendBulk(rows)

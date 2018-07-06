@@ -38,6 +38,11 @@ func main() {
 	for i := 1; i <= n; i++ {
 		b.Title = fmt.Sprintf("Title for Book %d", i)
 		b.Description = fmt.Sprintf("Description for Book %d", i)
+		if i == 2 {
+			// if a row is larger then the whole table respects and fill the gap for others.
+			b.Description += " (second)"
+		}
+
 		b.Sales = i * 12000
 		b.Publisher = publisher{
 			fmt.Sprintf("Publisher Name %d", i),

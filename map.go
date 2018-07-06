@@ -48,7 +48,7 @@ func (p *mapParser) ParseRows(v reflect.Value, keys []reflect.Value, filters []R
 	// cursors := make(map[int]int) // key = map's key index(although maps don't keep order), value = current index of elements inside the map.
 	maxLength := maxMapElemLength(v, keys)
 
-	rows := make([][]string, maxLength, maxLength)
+	rows := make([][]string, maxLength)
 	// depends on the header size, this is for the entire col aligment but
 	// we can't do that on `GetHeaders` because its values depends on the rows[index] value's type to the table.
 	numbers := make([]int, 0)

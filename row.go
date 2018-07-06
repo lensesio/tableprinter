@@ -115,18 +115,15 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 		case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
 			header.ValueAsNumber = true
 			s = fmt.Sprintf("%d", vi)
-			break
 		case reflect.Float32, reflect.Float64:
 			s = fmt.Sprintf("%.2f", vi)
 			rightCells = append(rightCells, pos)
-			break
 		case reflect.Bool:
 			if vi.(bool) {
 				s = "Yes"
 			} else {
 				s = "No"
 			}
-			break
 		case reflect.Slice, reflect.Array:
 			n := v.Len()
 			if header.ValueAsCountable {
@@ -145,13 +142,12 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 					}
 				}
 			}
-			break
 		default:
 			switch t := vi.(type) {
 			// Give priority to String() string functions inside the struct, if it's there then it's the whole cell string,
 			// otherwise if it's struct it's the fields if TagsOnly == false, useful for dynamic maps.
 			case fmt.Stringer:
-				s = fmt.Sprintf("%s", t.String())
+				s = t.String()
 			case struct{}:
 				rr, rightEmbeddedSlices := getRowFromStruct(reflect.ValueOf(vi), whenStructTagsOnly)
 				if len(rr) > 0 {

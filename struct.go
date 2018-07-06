@@ -142,10 +142,8 @@ func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 			switch hv {
 			case NumberHeaderTag:
 				header.ValueAsNumber = true
-				break
 			case CountHeaderTag:
 				header.ValueAsCountable = true
-				break
 			default:
 				header.AlternativeValue = hv
 			}

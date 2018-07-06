@@ -30,7 +30,7 @@ func (c country) String() string {
 }
 
 func buildBooks(n int) []book {
-	books := make([]book, n, n)
+	books := make([]book, n)
 	var b book
 
 	for i := 1; i <= n; i++ {
