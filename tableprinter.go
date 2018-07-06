@@ -50,6 +50,7 @@ type Printer struct {
 	RowSeparator     string
 	RowCharLimit     int
 	RowTextWrap      bool      // if RowCharLimit > 0 && RowTextWrap == true then wrap the line otherwise replace the trailing with "...".
+	OmitEmpty        bool      // if true and all rows[header pos]  are empty then remove the column entirely.
 	DefaultAlignment Alignment // see `NumbersAlignment` too.
 	NumbersAlignment Alignment
 
@@ -73,13 +74,15 @@ var Default = Printer{
 	HeaderLine:      true,
 	HeaderAlignment: AlignLeft,
 
-	RowLine:          false, /* it could be true as well */
-	ColumnSeparator:  " ",
-	NewLine:          "\n",
-	CenterSeparator:  " ", /* it could be empty as well */
-	RowSeparator:     tablewriter.ROW,
-	RowCharLimit:     60,
-	RowTextWrap:      true,
+	RowLine:         false, /* it could be true as well */
+	ColumnSeparator: " ",
+	NewLine:         "\n",
+	CenterSeparator: " ", /* it could be empty as well */
+	RowSeparator:    tablewriter.ROW,
+	RowCharLimit:    60,
+	RowTextWrap:     true,
+	OmitEmpty:       true,
+
 	DefaultAlignment: AlignLeft,
 	NumbersAlignment: AlignRight,
 
@@ -116,6 +119,7 @@ func New(w io.Writer) *Printer {
 		RowSeparator:    Default.RowSeparator,
 		RowCharLimit:    Default.RowCharLimit,
 		RowTextWrap:     Default.RowTextWrap,
+		OmitEmpty:       Default.OmitEmpty,
 
 		DefaultAlignment: Default.DefaultAlignment,
 		NumbersAlignment: Default.NumbersAlignment,
@@ -251,6 +255,36 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 	}
 
 	// headers, rows = p.formatTableBasedOnWidth(headers, rows, 11)
+
+	// vertical.
+	if p.OmitEmpty {
+		var emptiesPos []int
+		for _, rs := range rows {
+			for j, r := range rs {
+				if r == "" {
+					emptiesPos = append(emptiesPos, j)
+				}
+			}
+		}
+
+		onceHeaderRemoval := make(map[int]struct{})
+		for i, rs := range rows {
+			for _, pos := range emptiesPos {
+				if rs[pos] == "" {
+					rs = append(rs[:pos], rs[pos+1:]...)
+					rows[i] = rs
+
+					// rows = append(rows[:i], rows[i+1:]...)
+					if len(headers) > pos {
+						if _, ok := onceHeaderRemoval[pos]; !ok {
+							onceHeaderRemoval[pos] = struct{}{}
+							headers = append(headers[:pos], headers[pos+1:]...)
+						}
+					}
+				}
+			}
+		}
+	}
 
 	if len(headers) > 0 {
 		if p.RowLengthTitle != nil && p.RowLengthTitle(len(rows)) {

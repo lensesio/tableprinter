@@ -16,6 +16,8 @@ const (
 	NumberHeaderTag = "number"
 	// CountHeaderTag usage: List []any `header:"MyList,count"`
 	CountHeaderTag = "count"
+	// ForceTextHeaderTag usage: ID int `header:"ID,text"`
+	ForceTextHeaderTag = "text"
 )
 
 // RowFilter is the row's filter, accepts the reflect.Value of the custom type,
@@ -113,7 +115,9 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 
 		switch v.Kind() {
 		case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
-			header.ValueAsNumber = true
+			if !header.ValueAsText {
+				header.ValueAsNumber = true
+			}
 			s = fmt.Sprintf("%d", vi)
 		case reflect.Float32, reflect.Float64:
 			s = fmt.Sprintf("%.2f", vi)

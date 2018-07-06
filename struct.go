@@ -56,6 +56,7 @@ type StructHeader struct {
 
 	ValueAsNumber    bool
 	ValueAsCountable bool
+	ValueAsText      bool
 	AlternativeValue string
 }
 
@@ -144,6 +145,8 @@ func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 				header.ValueAsNumber = true
 			case CountHeaderTag:
 				header.ValueAsCountable = true
+			case ForceTextHeaderTag:
+				header.ValueAsText = true
 			default:
 				header.AlternativeValue = hv
 			}
