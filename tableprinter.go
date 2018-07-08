@@ -312,18 +312,7 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 
 	if p.RowCharLimit > 0 {
 		for i, rs := range rows {
-			for j, r := range rs {
-				if len(r) > p.RowCharLimit {
-					newRow := r[0:p.RowCharLimit] // without "60th"  if RowCharLimit is 60.
-					if p.RowTextWrap {
-						newRow += "\n" + r[p.RowCharLimit:]
-					} else {
-						newRow += "..."
-					}
-					rs[j] = newRow
-				}
-			}
-			rows[i] = rs
+			rows[i] = p.rowText(rs)
 		}
 	}
 
@@ -334,12 +323,34 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 	return table.NumLines()
 }
 
+func (p *Printer) rowText(row []string) []string {
+	if p.RowCharLimit <= 0 {
+		return row
+	}
+
+	for j, r := range row {
+		if len(r) > p.RowCharLimit {
+			newRow := r[0:p.RowCharLimit] // without "60th"  if RowCharLimit is 60.
+			if p.RowTextWrap {
+				newRow += "\n" + r[p.RowCharLimit:]
+			} else {
+				newRow += "..."
+			}
+			row[j] = newRow
+		}
+	}
+
+	return row
+}
+
 // RenderRow prints a row based on the same alignment rules to the last `Print` or `Render`.
 // It can be used to live update the table.
 //
 // Returns the total amount of rows written to the table.
 func (p *Printer) RenderRow(row []string, numbersColsPosition []int) int {
 	table := p.acquireTable()
+	row = p.rowText(row)
+
 	table.SetColumnAlignment(p.calculateColumnAlignment(numbersColsPosition, len(row)))
 
 	// RenderRowOnce added on kataras/tablewriter version, Changes from the original repository:

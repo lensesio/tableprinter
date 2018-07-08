@@ -140,7 +140,7 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 					vf := v.Index(fieldSliceIdx)
 					if vf.CanInterface() {
 						s += fmt.Sprintf("%v", vf.Interface())
-						if hasMore := fieldSliceIdx+1 > fieldSliceLen; hasMore {
+						if hasMore := fieldSliceIdx+1 < fieldSliceLen; hasMore {
 							s += ", "
 						}
 					}
