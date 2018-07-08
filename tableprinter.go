@@ -270,15 +270,17 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 		onceHeaderRemoval := make(map[int]struct{})
 		for i, rs := range rows {
 			for _, pos := range emptiesPos {
-				if rs[pos] == "" {
-					rs = append(rs[:pos], rs[pos+1:]...)
-					rows[i] = rs
+				if len(rs) > pos {
+					if rs[pos] == "" {
+						rs = append(rs[:pos], rs[pos+1:]...)
+						rows[i] = rs
 
-					// rows = append(rows[:i], rows[i+1:]...)
-					if len(headers) > pos {
-						if _, ok := onceHeaderRemoval[pos]; !ok {
-							onceHeaderRemoval[pos] = struct{}{}
-							headers = append(headers[:pos], headers[pos+1:]...)
+						// rows = append(rows[:i], rows[i+1:]...)
+						if len(headers) > pos {
+							if _, ok := onceHeaderRemoval[pos]; !ok {
+								onceHeaderRemoval[pos] = struct{}{}
+								headers = append(headers[:pos], headers[pos+1:]...)
+							}
 						}
 					}
 				}

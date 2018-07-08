@@ -117,6 +117,7 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 		case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
 			if !header.ValueAsText {
 				header.ValueAsNumber = true
+				rightCells = append(rightCells, pos)
 			}
 			s = fmt.Sprintf("%d", vi)
 		case reflect.Float32, reflect.Float64:
@@ -166,11 +167,10 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 			default:
 				s = fmt.Sprintf("%v", vi)
 			}
-
 		}
 
 		if header.ValueAsNumber {
-			sInt64, err := strconv.ParseInt(fmt.Sprintf("%v", s), 10, 64)
+			sInt64, err := strconv.ParseInt(s, 10, 64)
 			if err != nil || sInt64 == 0 {
 				s = header.AlternativeValue
 				if s == "" {
@@ -180,7 +180,7 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 				s = nearestThousandFormat(float64(sInt64))
 			}
 
-			rightCells = append(rightCells, pos)
+			// rightCells = append(rightCells, pos)
 		}
 
 		if s == "" {
