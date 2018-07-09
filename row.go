@@ -232,7 +232,7 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 				s = nearestThousandFormat(float64(sInt64))
 			}
 
-			// rightCells = append(rightCells, pos)
+			rightCells = append(rightCells, pos)
 		}
 
 		if s == "" {

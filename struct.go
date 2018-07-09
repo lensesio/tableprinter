@@ -183,7 +183,9 @@ func getRowFromStruct(v reflect.Value, tagsOnly bool) (cells []string, rightCell
 			if f.Type.Kind() == reflect.Struct && f.Tag.Get(HeaderTag) == InlineHeaderTag {
 				fieldValue := indirectValue(v.Field(i))
 				c, rc := getRowFromStruct(fieldValue, tagsOnly)
-				rightCells = append(rightCells, rc...)
+				for _, rcc := range rc {
+					rightCells = append(rightCells, rcc+j)
+				}
 				cells = append(cells, c...)
 				j++
 			}
@@ -192,7 +194,6 @@ func getRowFromStruct(v reflect.Value, tagsOnly bool) (cells []string, rightCell
 		}
 
 		fieldValue := indirectValue(v.Field(i))
-
 		c, r := extractCells(j, header, fieldValue, tagsOnly)
 		rightCells = append(rightCells, c...)
 		cells = append(cells, r...)
