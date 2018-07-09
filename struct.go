@@ -57,6 +57,11 @@ type StructHeader struct {
 	ValueAsNumber    bool
 	ValueAsCountable bool
 	ValueAsText      bool
+	ValueAsTime      bool
+	HumanizeValue    bool
+
+	ValueAsDuration bool
+
 	AlternativeValue string
 }
 
@@ -141,12 +146,20 @@ func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 	if len(parts) > 1 {
 		for _, hv := range parts[1:] /* except the first part ofc which should be the header value */ {
 			switch hv {
+			// any position.
 			case NumberHeaderTag:
 				header.ValueAsNumber = true
 			case CountHeaderTag:
 				header.ValueAsCountable = true
 			case ForceTextHeaderTag:
 				header.ValueAsText = true
+			case TimeHeaderTag:
+				header.ValueAsTime = true
+			case TimeHumanHeaderTag:
+				header.ValueAsTime = true
+				header.HumanizeValue = true
+			case DurationHeaderTag:
+				header.ValueAsDuration = true
 			default:
 				header.AlternativeValue = hv
 			}

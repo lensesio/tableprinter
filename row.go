@@ -5,6 +5,9 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"time"
+
+	"github.com/dustin/go-humanize"
 )
 
 const (
@@ -18,6 +21,12 @@ const (
 	CountHeaderTag = "count"
 	// ForceTextHeaderTag usage: ID int `header:"ID,text"`
 	ForceTextHeaderTag = "text"
+	// TimeHeaderTag usage: Start int64 `header:"Start Timestamp,unixtime"`
+	TimeHeaderTag = "unixtime"
+	// TimeHumanHeaderTag usage: Boot int64 `header:"Boot,unixtime_human"`
+	TimeHumanHeaderTag = "unixtime_human"
+	// DurationHeaderTag usage: Uptime int64 `header:"Uptime,unixduration"`
+	DurationHeaderTag = "unixduration"
 )
 
 // RowFilter is the row's filter, accepts the reflect.Value of the custom type,
@@ -115,10 +124,53 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 
 		switch v.Kind() {
 		case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
+			if header.ValueAsTime {
+				n, _ := strconv.ParseInt(fmt.Sprintf("%d", vi), 10, 64)
+				if n <= 0 {
+					s = ""
+					break
+				}
+
+				t := time.Unix(n, 0)
+				if t.IsZero() {
+					s = ""
+					break
+				}
+
+				if header.HumanizeValue {
+					// as time, not duration, this should work as well:
+					// s = time.Now().Truncate(-time.Duration(t.UnixNano())).Format(time.UnixDate)
+					s = humanize.Time(time.Now().Truncate(-time.Duration(t.UnixNano())))
+				} else {
+					s = t.Format(time.UnixDate)
+				}
+
+				break
+			}
+
+			if header.ValueAsDuration {
+				dur, _ := strconv.ParseInt(fmt.Sprintf("%d", vi), 10, 64)
+				if dur <= 0 {
+					break
+				}
+
+				since := time.Now().Truncate( /*- -> it's raw duration */ time.Duration(dur))
+				hour, min, sec := since.Clock()
+				if hour+min == 0 {
+					// if only seconds.
+					s = fmt.Sprintf("%d seconds", sec)
+				} else {
+					s = fmt.Sprintf("%dh %dm %ds", hour, min, sec)
+				}
+
+				break
+			}
+
 			if !header.ValueAsText {
 				header.ValueAsNumber = true
 				rightCells = append(rightCells, pos)
 			}
+
 			s = fmt.Sprintf("%d", vi)
 		case reflect.Float32, reflect.Float64:
 			s = fmt.Sprintf("%.2f", vi)

@@ -274,11 +274,9 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 					if rs[pos] == "" {
 						rs = append(rs[:pos], rs[pos+1:]...)
 						rows[i] = rs
-
-						// rows = append(rows[:i], rows[i+1:]...)
 						if len(headers) > pos {
-							if _, ok := onceHeaderRemoval[pos]; !ok {
-								onceHeaderRemoval[pos] = struct{}{}
+							if _, ok := onceHeaderRemoval[i]; !ok {
+								onceHeaderRemoval[i] = struct{}{}
 								headers = append(headers[:pos], headers[pos+1:]...)
 							}
 						}
