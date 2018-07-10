@@ -24,5 +24,5 @@ func (p *jsonParser) Parse(v reflect.Value, filters []RowFilter) (headers []stri
 	}
 
 	inValue := indirectValue(reflect.ValueOf(in))
-	return whichParser(inValue.Type()).Parse(inValue, filters)
+	return WhichParser(inValue.Type()).Parse(inValue, filters)
 }

@@ -23,8 +23,12 @@ var (
 	JSONParser   = new(jsonParser)
 )
 
-func whichParser(typ reflect.Type) Parser {
-	return availableParsers[typ.Kind()] // it can return nil.
+// WhichParser returns the available `Parser` for the "typ" type; Slice, Map, Struct...
+func WhichParser(typ reflect.Type) Parser {
+	if p, ok := availableParsers[typ.Kind()]; ok {
+		return p
+	}
+	return nil // it can return nil.
 }
 
 var availableParsers = map[reflect.Kind]Parser{

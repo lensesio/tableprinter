@@ -329,27 +329,37 @@ func (p *Printer) RenderRow(row []string, numbersColsPosition []int) int {
 // Print outputs whatever "in" value passed as a table to the "w",
 // filters cna be used to control what rows can be visible or hidden.
 // Usage:
-// Print(os.Stdout, values, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "tt" */
+// Print(os.Stdout, values, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "t" */
 // 	return t.Visibility != "hidden"
 // })
 //
-// Returns the total amount of rows written to the table.
-func Print(w io.Writer, v interface{}, filters ...interface{}) int {
-	return New(w).Print(v, filters...)
+// Returns the total amount of rows written to the table or
+// -1 if printer was unable to find a matching parser or if headers AND rows were empty.
+func Print(w io.Writer, in interface{}, filters ...interface{}) int {
+	return New(w).Print(in, filters...)
 }
 
 // Print outputs whatever "in" value passed as a table, filters can be used to control what rows can be visible and which not.
 // Usage:
-// Print(values, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "tt" */
+// Print(values, func(t MyStruct) bool { /* or any type, depends on the type(s) of the "t" */
 // 	return t.Visibility != "hidden"
 // })
 //
-// Returns the total amount of rows written to the table.
+// Returns the total amount of rows written to the table or
+// -1 if printer was unable to find a matching parser or if headers AND rows were empty.
 func (p *Printer) Print(in interface{}, filters ...interface{}) int {
 	v := indirectValue(reflect.ValueOf(in))
 	f := MakeFilters(v, filters...)
 
-	headers, rows, nums := whichParser(v.Type()).Parse(v, f)
+	parser := WhichParser(v.Type())
+	if p == nil {
+		return -1
+	}
+
+	headers, rows, nums := parser.Parse(v, f)
+	if len(headers) == 0 && len(rows) == 0 {
+		return -1
+	}
 
 	return p.Render(headers, rows, nums, true)
 }
@@ -357,7 +367,8 @@ func (p *Printer) Print(in interface{}, filters ...interface{}) int {
 // PrintJSON prints the json-bytes as a table to the "w",
 // filters cna be used to control what rows can be visible or hidden.
 //
-// Returns the total amount of rows written to the table.
+// Returns the total amount of rows written to the table or
+// -1 if headers AND rows were empty.
 func PrintJSON(w io.Writer, in []byte, filters ...interface{}) int {
 	return New(w).PrintJSON(in, filters...)
 }
@@ -365,12 +376,16 @@ func PrintJSON(w io.Writer, in []byte, filters ...interface{}) int {
 // PrintJSON prints the json-bytes as a table,
 // filters cna be used to control what rows can be visible or hidden.
 //
-// Returns the total amount of rows written to the table.
+// Returns the total amount of rows written to the table or
+// -1 if headers AND rows were empty.
 func (p *Printer) PrintJSON(in interface{}, filters ...interface{}) int {
 	v := indirectValue(reflect.ValueOf(in))
 	f := MakeFilters(v, filters...)
 
 	headers, rows, nums := JSONParser.Parse(v, f)
+	if len(headers) == 0 && len(rows) == 0 {
+		return -1
+	}
 
 	return p.Render(headers, rows, nums, true)
 }
