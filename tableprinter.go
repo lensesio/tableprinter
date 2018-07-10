@@ -352,7 +352,7 @@ func (p *Printer) Print(in interface{}, filters ...interface{}) int {
 	f := MakeFilters(v, filters...)
 
 	parser := WhichParser(v.Type())
-	if p == nil {
+	if parser == nil {
 		return -1
 	}
 
