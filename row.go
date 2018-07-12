@@ -1,6 +1,8 @@
 package tableprinter
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -205,8 +207,16 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 			if len(v.MapKeys()) == 0 {
 				return
 			}
+			b, err := json.MarshalIndent(vi, " ", "  ")
+			if err != nil {
+				s = fmt.Sprintf("%v", vi)
+			} else {
+				b = bytes.Replace(b, []byte("\\u003c"), []byte("<"), -1)
+				b = bytes.Replace(b, []byte("\\u003e"), []byte(">"), -1)
+				b = bytes.Replace(b, []byte("\\u0026"), []byte("&"), -1)
+				s = string(b)
+			}
 
-			s = fmt.Sprintf("%#+v", vi)
 		default:
 			switch t := vi.(type) {
 			// Give priority to String() string functions inside the struct, if it's there then it's the whole cell string,

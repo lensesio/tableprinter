@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/kataras/tablewriter"
 )
@@ -291,21 +292,39 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 	return table.NumLines()
 }
 
+func (p *Printer) cellText(cell string) string {
+	words := strings.Fields(strings.TrimSpace(cell))
+	if len(words) == 0 {
+		return cell
+	}
+
+	cell = words[0]
+	rem := p.RowCharLimit - len(cell)
+	for _, w := range words[1:] {
+		if c := len(w) + 1; c <= rem {
+			cell += " " + w
+			rem -= c + 1 // including space.
+			continue
+		}
+
+		cell += "\n" + w
+		rem = p.RowCharLimit - len(w)
+	}
+
+	return cell
+}
+
 func (p *Printer) rowText(row []string) []string {
 	if p.RowCharLimit <= 0 {
 		return row
 	}
 
 	for j, r := range row {
-		if len(r) > p.RowCharLimit {
-			newRow := r[0:p.RowCharLimit] // without "60th"  if RowCharLimit is 60.
-			if p.RowTextWrap {
-				newRow += "\n" + r[p.RowCharLimit:]
-			} else {
-				newRow += "..."
-			}
-			row[j] = newRow
+		if len(r) <= p.RowCharLimit {
+			continue
 		}
+
+		row[j] = p.cellText(r)
 	}
 
 	return row
