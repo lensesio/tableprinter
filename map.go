@@ -13,6 +13,10 @@ type mapParser struct {
 
 func (p *mapParser) Parse(v reflect.Value, filters []RowFilter) ([]string, [][]string, []int) {
 	keys := p.Keys(v)
+	if len(keys) == 0 {
+		return nil, nil, nil
+	}
+
 	headers := p.ParseHeaders(v, keys)
 	rows, numbers := p.ParseRows(v, keys, filters)
 

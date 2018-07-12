@@ -2,6 +2,7 @@ package tableprinter
 
 import (
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -59,8 +60,8 @@ type StructHeader struct {
 	ValueAsText      bool
 	ValueAsTime      bool
 	HumanizeValue    bool
-
-	ValueAsDuration bool
+	ValueAsDate      bool
+	ValueAsDuration  bool
 
 	AlternativeValue string
 }
@@ -160,6 +161,8 @@ func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 				header.HumanizeValue = true
 			case DurationHeaderTag:
 				header.ValueAsDuration = true
+			case DateHeaderTag:
+				header.ValueAsDate = true
 			default:
 				header.AlternativeValue = hv
 			}
@@ -201,4 +204,115 @@ func getRowFromStruct(v reflect.Value, tagsOnly bool) (cells []string, rightCell
 	}
 
 	return
+}
+
+// RemoveStructHeader will dynamically remove a specific header tag from a struct's field
+// based on the "fieldName" which must be a valid exported field of the struct.
+// It returns the new, converted, struct value.
+//
+// If "original" is not a struct or
+// the "fieldName" was unable to be found then the "item" is returned as it was before this call.
+//
+// See `SetStructHeader` too.
+func RemoveStructHeader(original interface{}, fieldName string) interface{} {
+	return SetStructHeader(original, fieldName, "")
+}
+
+// SetStructHeader dynamically sets the "newHeaderValue" to a specific struct's field's header tag's value
+// based on the "fieldName" which must be a valid exported field of the struct.
+//
+// It returns the new, converted, struct value.
+//
+// If "original" is not a struct or
+// the "fieldName" was unable to be found then the "item" is returned as it was before this call.
+//
+// If the "newValue" is empty then the whole header will be removed, see `RemoveStructHeader` too.
+func SetStructHeader(original interface{}, fieldName string, newHeaderValue string) interface{} {
+	if original == nil {
+		return nil
+	}
+
+	typ := indirectType(reflect.TypeOf(original))
+	if typ.Kind() != reflect.Struct {
+		return original
+	}
+
+	// we will catch only exported fields in order to convert the type successfully, so dynamic length,
+	// in any case, the unexported fields are not used inside a table at all.
+	n := typ.NumField()
+	fs := make([]reflect.StructField, 0)
+	// 1. copy the struct's fields, we will make a new one based on the "original"
+	// 2. if the "fieldName" found then we can continue and clear the header tag, otherwise return "original".
+	found := false
+	if len(newHeaderValue) > 0 && !strings.Contains(newHeaderValue, `"`) {
+		newHeaderValue = strconv.Quote(newHeaderValue)
+	}
+
+	for i := 0; i < n; i++ {
+		f := typ.Field(i)
+		if f.PkgPath != "" {
+			continue
+		}
+
+		if f.Name == fieldName {
+			found = true
+			// json:"value" xml:"value header:"value"
+			// header:"value"
+			// json:"value" header:"value"
+			// header:"value" xml:"value" json:"value"
+			// json:"value" header:"value,options" xml:"value", we need to change only the [start: header:]...[end: last" or space],
+			// but let's do it without for loops here, search for old value and change it if exists, otherwise append the whole header tag,
+			// remove that if "newValue" is empty.
+			oldHeaderValue := f.Tag.Get(HeaderTag)
+
+			if oldHeaderValue == "" {
+				if newHeaderValue != "" {
+					line := string(f.Tag)
+					if line != "" {
+						line += " "
+					}
+					// set the header tag, append to the existing tag value(not just the header one) (if exists a space is prepended before the header tag).
+					f.Tag = reflect.StructTag(line + HeaderTag + ":" + newHeaderValue)
+				} else {
+					// do nothing, new header value is empty and old header tag does not exist.
+				}
+			} else {
+				// quote it.
+				oldHeaderValue = strconv.Quote(oldHeaderValue)
+				// simple replace.
+				tag := string(f.Tag)
+				if newHeaderValue != "" {
+					tag = strings.Replace(tag, HeaderTag+":"+oldHeaderValue, HeaderTag+":"+newHeaderValue, 1)
+				} else {
+					// should remove the `HeaderTag`(?[space]header:[?value][?space]) if it's there.
+					//
+					// note: strings.Join/Split usage, not searching through char looping, although it would be faster but we don't really care here,
+					// keep it simpler to change.
+					tagValues := strings.Split(tag, " ")
+					for j, part := range tagValues { // the whole value.
+						if strings.HasPrefix(part, HeaderTag+":") {
+							tagValues = append(tagValues[:j], tagValues[j+1:]...)
+							break
+						}
+					}
+
+					tag = strings.Join(tagValues, " ")
+				}
+
+				f.Tag = reflect.StructTag(tag)
+			}
+		}
+
+		fs = append(fs, f)
+	}
+
+	if !found {
+		return original
+	}
+
+	withoutHeaderTyp := reflect.StructOf(fs)
+
+	// tmp := indirectValue(reflect.ValueOf(original)).Convert(withoutHeaderTyp)
+	tmp := reflect.New(withoutHeaderTyp).Elem()
+	return tmp.Interface()
 }

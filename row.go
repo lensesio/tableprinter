@@ -27,6 +27,8 @@ const (
 	TimeHumanHeaderTag = "unixtime_human"
 	// DurationHeaderTag usage: Uptime int64 `header:"Uptime,unixduration"`
 	DurationHeaderTag = "unixduration"
+	// DateHeaderTag usage: Start string `header:"Start,date"`, the field's value should be formatted as time.RFC3339
+	DateHeaderTag = "date"
 )
 
 // RowFilter is the row's filter, accepts the reflect.Value of the custom type,
@@ -199,6 +201,12 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 					}
 				}
 			}
+		case reflect.Map:
+			if len(v.MapKeys()) == 0 {
+				return
+			}
+
+			s = fmt.Sprintf("%#+v", vi)
 		default:
 			switch t := vi.(type) {
 			// Give priority to String() string functions inside the struct, if it's there then it's the whole cell string,
@@ -233,6 +241,11 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 			}
 
 			rightCells = append(rightCells, pos)
+		} else if header.ValueAsDate {
+			t, err := time.Parse(time.RFC3339, s)
+			if err == nil {
+				s = t.Format("2006-01-02 15:04:05")
+			}
 		}
 
 		if s == "" {
