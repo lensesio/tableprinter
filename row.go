@@ -23,10 +23,38 @@ const (
 	CountHeaderTag = "count"
 	// ForceTextHeaderTag usage: ID int `header:"ID,text"`
 	ForceTextHeaderTag = "text"
-	// TimeHeaderTag usage: Start int64 `header:"Start Timestamp,unixtime"`
-	TimeHeaderTag = "unixtime"
-	// TimeHumanHeaderTag usage: Boot int64 `header:"Boot,unixtime_human"`
-	TimeHumanHeaderTag = "unixtime_human"
+
+	// TimestampHeaderTag usage: Timestamp int64 `json:"timestamp" yaml:"Timestamp" header:"At,timestamp(ms|utc|02 Jan 2006 15:04)"`
+	TimestampHeaderTag = "timestamp"
+	// TimestampFromMillisecondsHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms)"`
+	TimestampFromMillisecondsHeaderTag = "ms"
+	// TimestampAsUTCHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc)"`
+	TimestampAsUTCHeaderTag = "utc"
+	// TimestampAsLocalHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|local)"`
+	TimestampAsLocalHeaderTag = "local"
+	// TimestampFormatHumanHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|human)"`
+	TimestampFormatHumanHeaderTag = "human"
+	// TimestampFormatANSICHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|ANSIC)"`
+	TimestampFormatANSICHeaderTag = "ANSIC"
+	// TimestampFormatUnixDateCHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|UnixDate)"`
+	TimestampFormatUnixDateCHeaderTag = "UnixDate"
+	// TimestampFormatRubyDateHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|RubyDate)"`
+	TimestampFormatRubyDateHeaderTag = "RubyDate"
+	// TimestampFormatRFC822HeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|RFC822)"`
+	TimestampFormatRFC822HeaderTag = "RFC822"
+	// TimestampFormatRFC822ZHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|RFC822Z)"`
+	TimestampFormatRFC822ZHeaderTag = "RFC822Z"
+	// TimestampFormatRFC850HeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|RFC850)"`
+	TimestampFormatRFC850HeaderTag = "RFC850"
+	// TimestampFormatRFC1123HeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|RFC1123)"`
+	TimestampFormatRFC1123HeaderTag = "RFC1123"
+	// TimestampFormatRFC1123ZHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|RFC1123Z)"`
+	TimestampFormatRFC1123ZHeaderTag = "RFC1123Z" // default one.
+	// TimestampFormatRFC3339HeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|RFC3339)"`
+	TimestampFormatRFC3339HeaderTag = "RFC3339"
+	// TimestampFormatARFC3339NanoHeaderTag usage: Timestamp int64 `header:"Start,timestamp(ms|utc|RFC3339Nano)"`
+	TimestampFormatARFC3339NanoHeaderTag = "RFC3339Nano"
+
 	// DurationHeaderTag usage: Uptime int64 `header:"Uptime,unixduration"`
 	DurationHeaderTag = "unixduration"
 	// DateHeaderTag usage: Start string `header:"Start,date"`, the field's value should be formatted as time.RFC3339
@@ -127,33 +155,38 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 		vi := v.Interface()
 
 		switch v.Kind() {
-		case reflect.Int, reflect.Int16, reflect.Int32, reflect.Int64:
-			if header.ValueAsTime {
-				n, _ := strconv.ParseInt(fmt.Sprintf("%d", vi), 10, 64)
+		case reflect.Int64:
+			if header.ValueAsTimestamp {
+				n := vi.(int64)
 				if n <= 0 {
-					s = ""
 					break
+				}
+
+				if header.TimestampValue.FromMilliseconds { // to seconds.
+					n = n / 1000
 				}
 
 				t := time.Unix(n, 0)
 				if t.IsZero() {
-					s = ""
 					break
 				}
 
-				if header.HumanizeValue {
-					// as time, not duration, this should work as well:
-					// s = time.Now().Truncate(-time.Duration(t.UnixNano())).Format(time.UnixDate)
-					s = humanize.Time(time.Now().Truncate(-time.Duration(t.UnixNano())))
-				} else {
-					s = t.Format(time.UnixDate)
+				if header.TimestampValue.UTC {
+					t = t.UTC()
+				} else if header.TimestampValue.Local {
+					t = t.Local()
 				}
 
+				if header.TimestampValue.Human {
+					s = humanize.Time(t)
+				} else {
+					s = t.Format(header.TimestampValue.Format)
+				}
 				break
 			}
 
 			if header.ValueAsDuration {
-				dur, _ := strconv.ParseInt(fmt.Sprintf("%d", vi), 10, 64)
+				dur := vi.(int64)
 				if dur <= 0 {
 					break
 				}
@@ -170,6 +203,14 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 				break
 			}
 
+			if !header.ValueAsText {
+				header.ValueAsNumber = true
+				rightCells = append(rightCells, pos)
+			}
+
+			s = fmt.Sprintf("%d", vi)
+		// 	fallthrough
+		case reflect.Int, reflect.Int16, reflect.Int32:
 			if !header.ValueAsText {
 				header.ValueAsNumber = true
 				rightCells = append(rightCells, pos)

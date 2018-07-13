@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // StructHeaders are being cached from the root-level structure to print out.
@@ -49,6 +50,17 @@ func (p *structParser) ParseRow(v reflect.Value) ([]string, []int) {
 	return getRowFromStruct(v, p.TagsOnly)
 }
 
+type TimestampHeaderTagValue struct {
+	FromMilliseconds bool
+
+	UTC   bool
+	Local bool
+
+	Human bool
+
+	Format string
+}
+
 // StructHeader contains the name of the header extracted from the struct's `HeaderTag` field tag.
 type StructHeader struct {
 	Name string
@@ -58,8 +70,8 @@ type StructHeader struct {
 	ValueAsNumber    bool
 	ValueAsCountable bool
 	ValueAsText      bool
-	ValueAsTime      bool
-	HumanizeValue    bool
+	ValueAsTimestamp bool
+	TimestampValue   TimestampHeaderTagValue
 	ValueAsDate      bool
 	ValueAsDuration  bool
 
@@ -133,6 +145,79 @@ func extractHeadersFromStruct(typ reflect.Type, tagsOnly bool) (headers []Struct
 	return headers
 }
 
+var (
+	timeStdFormats = map[string]string{
+		TimestampFormatANSICHeaderTag:        time.ANSIC,
+		TimestampFormatUnixDateCHeaderTag:    time.UnixDate,
+		TimestampFormatRubyDateHeaderTag:     time.RubyDate,
+		TimestampFormatRFC822HeaderTag:       time.RFC822,
+		TimestampFormatRFC822ZHeaderTag:      time.RFC822Z, // default one.
+		TimestampFormatRFC850HeaderTag:       time.RFC850,
+		TimestampFormatRFC1123HeaderTag:      time.RFC1123,
+		TimestampFormatRFC1123ZHeaderTag:     time.RFC1123Z,
+		TimestampFormatRFC3339HeaderTag:      time.RFC3339,
+		TimestampFormatARFC3339NanoHeaderTag: time.RFC3339Nano,
+	}
+
+	emptyTimestampHeaderTagValue TimestampHeaderTagValue
+)
+
+func extractTimestampHeader(timestampHeaderTagValue string) (TimestampHeaderTagValue, bool) {
+	if !strings.HasPrefix(timestampHeaderTagValue, TimestampHeaderTag) {
+		return emptyTimestampHeaderTagValue, false // should never happen at this state.
+	}
+
+	if len(timestampHeaderTagValue) == len(TimestampHeaderTag) {
+		// timestamp without args.
+		return emptyTimestampHeaderTagValue, true
+	}
+
+	trail := timestampHeaderTagValue[len(TimestampHeaderTag):] // timestamp:<<(....)>>
+	if !strings.HasPrefix(trail, "(") || !strings.HasSuffix(trail, ")") {
+		// invalid format for args, but still a valid simple timestamp.
+		return emptyTimestampHeaderTagValue, true
+	}
+
+	t := TimestampHeaderTagValue{}
+	argsLine := trail[1 : len(trail)-1]
+	args := strings.Split(argsLine, "|")
+	for _, arg := range args {
+		// arg = strings.ToLower(arg)
+		switch arg {
+		case TimestampFromMillisecondsHeaderTag:
+			t.FromMilliseconds = true
+		case TimestampAsUTCHeaderTag:
+			t.UTC = true
+		case TimestampAsLocalHeaderTag:
+			t.Local = true
+		case TimestampFormatHumanHeaderTag:
+			t.Human = true
+		case // formats are specific.
+			TimestampFormatANSICHeaderTag,
+			TimestampFormatUnixDateCHeaderTag,
+			TimestampFormatRubyDateHeaderTag,
+			TimestampFormatRFC822HeaderTag,
+			TimestampFormatRFC822ZHeaderTag,
+			TimestampFormatRFC850HeaderTag,
+			TimestampFormatRFC1123HeaderTag,
+			TimestampFormatRFC1123ZHeaderTag,
+			TimestampFormatRFC3339HeaderTag,
+			TimestampFormatARFC3339NanoHeaderTag:
+			if expectedFormat, ok := timeStdFormats[arg]; ok {
+				t.Format = expectedFormat
+			}
+		default:
+			// custom format.
+			t.Format = arg
+		}
+	}
+
+	if t.Format == "" {
+		t.Format = TimestampFormatRFC822ZHeaderTag
+	}
+
+	return t, true
+}
 func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 	if headerTag == "" {
 		return
@@ -154,16 +239,16 @@ func extractHeaderFromTag(headerTag string) (header StructHeader, ok bool) {
 				header.ValueAsCountable = true
 			case ForceTextHeaderTag:
 				header.ValueAsText = true
-			case TimeHeaderTag:
-				header.ValueAsTime = true
-			case TimeHumanHeaderTag:
-				header.ValueAsTime = true
-				header.HumanizeValue = true
 			case DurationHeaderTag:
 				header.ValueAsDuration = true
 			case DateHeaderTag:
 				header.ValueAsDate = true
 			default:
+				if strings.HasPrefix(hv, TimestampHeaderTag) {
+					header.TimestampValue, header.ValueAsTimestamp = extractTimestampHeader(hv)
+					continue
+				}
+
 				header.AlternativeValue = hv
 			}
 		}
