@@ -50,6 +50,7 @@ func (p *structParser) ParseRow(v reflect.Value) ([]string, []int) {
 	return getRowFromStruct(v, p.TagsOnly)
 }
 
+// TimestampHeaderTagValue the header's value of a "timestamp" header tag functionality.
 type TimestampHeaderTagValue struct {
 	FromMilliseconds bool
 

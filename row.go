@@ -186,18 +186,54 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 			}
 
 			if header.ValueAsDuration {
-				dur := vi.(int64)
+				got := vi.(int64)
+				if got <= 0 {
+					break
+				}
+
+				dif := time.Now().Unix() - got/1000
+				t := time.Unix(dif, 0)
+				dur := time.Since(t)
 				if dur <= 0 {
 					break
 				}
 
-				since := time.Now().Truncate( /*- -> it's raw duration */ time.Duration(dur))
-				hour, min, sec := since.Clock()
-				if hour+min == 0 {
-					// if only seconds.
-					s = fmt.Sprintf("%d seconds", sec)
-				} else {
-					s = fmt.Sprintf("%dh %dm %ds", hour, min, sec)
+				dur += (100 * time.Millisecond) / 2
+				days := (dur / (24 * time.Hour))
+				dur = dur % (24 * time.Hour)
+				hours := dur / time.Hour
+				dur = dur % time.Hour
+				minutes := dur / time.Minute
+				dur = dur % time.Minute
+				seconds := dur / time.Second
+
+				if days == 1 {
+					s = fmt.Sprintf("%d day", days)
+				} else if days > 1 {
+					s = fmt.Sprintf("%d days", days)
+				}
+
+				if hours == 1 {
+					s += fmt.Sprintf(" %d hour", hours)
+				} else if hours > 1 {
+					s += fmt.Sprintf(" %d hours", hours)
+				}
+
+				if minutes == 1 {
+					s += fmt.Sprintf(" %d minute", minutes)
+				} else if minutes > 1 {
+					s += fmt.Sprintf(" %d minutes", minutes)
+				}
+
+				if seconds >= 30 {
+					s += fmt.Sprintf(" %d seconds", seconds)
+				} else if s == "" && seconds > 0 {
+					s = "few seconds"
+				}
+
+				// remove first space if any.
+				if s != "" && s[0] == ' ' {
+					s = s[1:]
 				}
 
 				break
