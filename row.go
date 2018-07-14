@@ -182,6 +182,11 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 				} else {
 					s = t.Format(header.TimestampValue.Format)
 				}
+
+				// if !header.ValueAsText {
+				// 	rightCells = append(rightCells, pos)
+				// }
+
 				break
 			}
 

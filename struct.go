@@ -397,8 +397,25 @@ func SetStructHeader(original interface{}, fieldName string, newHeaderValue stri
 	}
 
 	withoutHeaderTyp := reflect.StructOf(fs)
-
-	// tmp := indirectValue(reflect.ValueOf(original)).Convert(withoutHeaderTyp)
 	tmp := reflect.New(withoutHeaderTyp).Elem()
+
+	// fill the fields.
+	v := indirectValue(reflect.ValueOf(original))
+	for i := 0; i < n; i++ {
+		f := typ.Field(i)
+		if f.PkgPath != "" {
+			// oroginal may have unexported fields, so we check by name below
+			continue
+		}
+
+		for j := 0; j < withoutHeaderTyp.NumField(); j++ {
+			tmpF := withoutHeaderTyp.Field(j)
+			if tmpF.Name == f.Name {
+				tmp.Field(j).Set(v.Field(i))
+			}
+		}
+	}
+
 	return tmp.Interface()
+	// return indirectValue(reflect.ValueOf(original)).Convert(withoutHeaderTyp).Interface()
 }

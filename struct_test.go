@@ -26,6 +26,10 @@ func TestSetStructHeader(t *testing.T) {
 		t.Fatalf("[changedUnquote] expected the whole field tag of 'HeaderFieldSet' to be changed to '%s', but got: '%s'", expected, got)
 	}
 
+	if expected, got := reflect.ValueOf(changedUnquote).FieldByName("HeaderFieldSet").Interface().(string), sample.HeaderFieldSet; expected != got {
+		t.Fatalf("[changedUnquote] expected the field value of 'HeaderFieldSet' to be: '%s' but got: '%s'", expected, got)
+	}
+
 	// set, quoted.
 	expectedNewHeaderValueQuote := `"headervalue3_new_quote"`
 	changedQuote := SetStructHeader(sample, "HeaderFieldSet", expectedNewHeaderValueQuote)
