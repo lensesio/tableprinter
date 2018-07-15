@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -286,17 +287,56 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 				}
 			}
 		case reflect.Map:
-			if len(v.MapKeys()) == 0 {
+			keys := v.MapKeys()
+
+			// it's map but has a ",count" header filter, allow the zeros.
+			if header.ValueAsCountable {
+				vi = len(keys)
+				return extractCells(pos, header, reflect.ValueOf(vi), whenStructTagsOnly)
+			}
+
+			if len(keys) == 0 {
 				return
 			}
-			b, err := json.MarshalIndent(vi, " ", "  ")
-			if err != nil {
-				s = fmt.Sprintf("%v", vi)
-			} else {
-				b = bytes.Replace(b, []byte("\\u003c"), []byte("<"), -1)
-				b = bytes.Replace(b, []byte("\\u003e"), []byte(">"), -1)
-				b = bytes.Replace(b, []byte("\\u0026"), []byte("&"), -1)
-				s = string(b)
+
+			// if keys are string and value can be represented as string without taking too much space,
+			// then show as key = value\nkey = value... otherwise as show as indented json.
+			for i, key := range keys {
+				val := v.MapIndex(key)
+				if keyK := key.Kind(); keyK == reflect.String {
+					valK := val.Kind()
+					if valK == reflect.Interface {
+						val = val.Elem()
+						valK = val.Kind()
+					}
+
+					if valK == reflect.Struct || valK == reflect.Slice || valK == reflect.Map || valK == reflect.Array {
+						continue
+					}
+
+					valStr := strings.TrimSpace(fmt.Sprintf("%v", val.Interface()))
+					if valStr == "" {
+						continue
+					}
+
+					//  strconv.Quote(valStr)
+					s += key.Interface().(string) + " = " + cellText(valStr, 20)
+					if i < len(keys)-1 {
+						s += "\n"
+					}
+				}
+			}
+
+			if s == "" {
+				b, err := json.MarshalIndent(vi, " ", "  ")
+				if err != nil {
+					s = fmt.Sprintf("%v", vi)
+				} else {
+					b = bytes.Replace(b, []byte("\\u003c"), []byte("<"), -1)
+					b = bytes.Replace(b, []byte("\\u003e"), []byte(">"), -1)
+					b = bytes.Replace(b, []byte("\\u0026"), []byte("&"), -1)
+					s = string(b)
+				}
 			}
 
 		default:

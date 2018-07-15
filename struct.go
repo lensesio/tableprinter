@@ -404,7 +404,7 @@ func SetStructHeader(original interface{}, fieldName string, newHeaderValue stri
 	for i := 0; i < n; i++ {
 		f := typ.Field(i)
 		if f.PkgPath != "" {
-			// oroginal may have unexported fields, so we check by name below
+			// "original" may have unexported fields, so we check by name, see below.
 			continue
 		}
 

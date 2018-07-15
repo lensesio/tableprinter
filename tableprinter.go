@@ -292,14 +292,25 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 	return table.NumLines()
 }
 
-func (p *Printer) cellText(cell string) string {
+func cellText(cell string, charLimit int) string {
+	if strings.Contains(cell, "\n") {
+		if strings.HasSuffix(cell, "\n") {
+			cell = cell[0 : len(cell)-2]
+			if len(cell) > charLimit {
+				return cellText(cell, charLimit)
+			}
+		}
+
+		return cell
+	}
+
 	words := strings.Fields(strings.TrimSpace(cell))
 	if len(words) == 0 {
 		return cell
 	}
 
 	cell = words[0]
-	rem := p.RowCharLimit - len(cell)
+	rem := charLimit - len(cell)
 	for _, w := range words[1:] {
 		if c := len(w) + 1; c <= rem {
 			cell += " " + w
@@ -308,7 +319,7 @@ func (p *Printer) cellText(cell string) string {
 		}
 
 		cell += "\n" + w
-		rem = p.RowCharLimit - len(w)
+		rem = charLimit - len(w)
 	}
 
 	return cell
@@ -324,7 +335,7 @@ func (p *Printer) rowText(row []string) []string {
 			continue
 		}
 
-		row[j] = p.cellText(r)
+		row[j] = cellText(r, p.RowCharLimit)
 	}
 
 	return row
