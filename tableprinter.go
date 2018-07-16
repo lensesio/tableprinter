@@ -263,7 +263,7 @@ func (p *Printer) Render(headers []string, rows [][]string, numbersColsPosition 
 		table.SetHeader(headers)
 
 		// colors must set after headers, depends on the number of headers.
-		if l := len(p.HeaderColors); l > 0 && l == len(headers) {
+		if l := len(p.HeaderColors); l > 0 {
 			// dev set header color for each header, can panic if not match
 			table.SetHeaderColor(p.HeaderColors...)
 		} else if bg, fg := p.HeaderBgColor, p.HeaderFgColor; bg > 0 || fg > 0 {

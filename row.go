@@ -305,7 +305,7 @@ func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsO
 				val := v.MapIndex(key)
 				if keyK := key.Kind(); keyK == reflect.String {
 					valK := val.Kind()
-					if valK == reflect.Interface {
+					if valK == reflect.Interface || valK == reflect.Ptr {
 						val = val.Elem()
 						valK = val.Kind()
 					}
