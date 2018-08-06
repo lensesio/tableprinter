@@ -412,6 +412,10 @@ func (p *Printer) PrintJSON(in interface{}, filters ...interface{}) int {
 	v := indirectValue(reflect.ValueOf(in))
 	f := MakeFilters(v, filters...)
 
+	if !v.IsValid() {
+		return -1
+	}
+
 	headers, rows, nums := JSONParser.Parse(v, f)
 	if len(headers) == 0 && len(rows) == 0 {
 		return -1
