@@ -74,7 +74,7 @@ func main() {
 
 ## Versioning
 
-Current: **v0.0.2**
+Current: **v0.0.3**
 
 Read more about Semantic Versioning 2.0.0
 
