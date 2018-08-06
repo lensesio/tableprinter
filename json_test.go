@@ -3,8 +3,37 @@ package tableprinter
 import (
 	"reflect"
 	"testing"
+
+	"encoding/json"
 )
 
+func TestJSONParse(t *testing.T) {
+	type sample struct {
+		HeaderField   string `json:"header1"`
+		MultiTagField string `json:"header2"`
+	}
+
+	tt := sample{"value1", "value2"}
+	b, err := json.Marshal(tt)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	h, r, nums := JSONParser.Parse(indirectValue(reflect.ValueOf(b)), nil)
+
+	if expected, got := 2, len(h); expected != got {
+		t.Fatalf("the length of the headers were expected %d headers but got %d", expected, got)
+	}
+
+	if expected, got := 0, nums; expected != 0 {
+		t.Fatalf("expected %d number-type fields but got %d", expected, got)
+	}
+
+	if expected, got := 1, len(r); expected != got {
+		t.Fatalf("expected %d rows but got %d", expected, got)
+	}
+
+}
 func TestJSONWithInvalidNoBytesOrStringValueAndEmpties(t *testing.T) {
 	type sample struct {
 		HeaderField   string `header:"headervalue1"`

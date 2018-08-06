@@ -7,13 +7,13 @@ import (
 
 type jsonParser struct{}
 
-var byteSliceTyp = reflect.TypeOf([]byte{})
+var byteTyp = reflect.TypeOf([]byte{0x00}[0])
 
 func (p *jsonParser) Parse(v reflect.Value, filters []RowFilter) (headers []string, rows [][]string, nums []int) {
 	var b []byte
 
 	if kind := v.Kind(); kind == reflect.Slice {
-		if v.Len() > 0 && v.Index(0).Type() == byteSliceTyp {
+		if v.Len() > 0 && v.Index(0).Type() == byteTyp {
 			b = v.Bytes()
 		} else {
 			return
