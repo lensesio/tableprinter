@@ -62,7 +62,7 @@ func main() {
 
 ### Examples
 
-* [Simple](/_examples/1_basic/main.go)
+* [Simple](/_examples/1_simple/main.go)
 * [Inline](/_examples/2_inline/main.go)
 * [List](/_examples/3_list/main.go)
 * [Map](/_examples/4_map/main.go)
