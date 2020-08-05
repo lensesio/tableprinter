@@ -151,7 +151,7 @@ func MakeFilters(in reflect.Value, genericFilters ...interface{}) (f []RowFilter
 }
 
 func extractCells(pos int, header StructHeader, v reflect.Value, whenStructTagsOnly bool) (rightCells []int, cells []string) {
-	if v.CanInterface() {
+	if v.IsValid() && v.CanInterface() {
 		s := ""
 		vi := v.Interface()
 
