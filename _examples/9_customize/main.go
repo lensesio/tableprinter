@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/kataras/tablewriter"
-	"github.com/landoop/tableprinter"
+	"github.com/lensesio/tableprinter"
 )
 
 type person struct {

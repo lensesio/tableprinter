@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/landoop/tableprinter"
+	"github.com/lensesio/tableprinter"
 )
 
 type person struct {
