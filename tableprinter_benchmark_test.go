@@ -51,10 +51,10 @@ func buildBooks(n int) []book {
 // quite fast: using one table per printer & using cache for types that already scanned for headers.
 // goos: linux
 // goarch: amd64
-// pkg: github.com/landoop/tableprinter
+// pkg: github.com/lensesio/tableprinter
 // BenchmarkPrint-8          100000             22545 ns/op            3973 B/op        181 allocs/op
 // PASS
-// ok      github.com/landoop/tableprinter 2.919s
+// ok      github.com/lensesio/tableprinter 2.919s
 func BenchmarkPrint(b *testing.B) {
 	var (
 		w       = new(bytes.Buffer)

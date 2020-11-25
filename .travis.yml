@@ -4,7 +4,7 @@ os:
   - osx
 go:
   - "go1.10"
-go_import_path: github.com/landoop/tableprinter
+go_import_path: github.com/lensesio/tableprinter
 env:
   global:
     - GOCACHE=off

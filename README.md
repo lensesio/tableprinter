@@ -6,15 +6,15 @@ _tableprinter_ is an intelligent value-to-table formatter and writer. It uses a 
 
 It checks every in data and transforms those data(structure values, slices, maps, single lists that may contain different type of values such as go standard values like `int`, `string` even a value that implements the `fmt.Stringer` interface) to a table formatted text and outputs it to an `io.Writer`. Like `encoding/json#Encode` but for tables.
 
-[![build status](https://img.shields.io/travis/Landoop/tableprinter/master.svg?style=flat-square)](https://travis-ci.org/Landoop/tableprinter) [![report card](https://img.shields.io/badge/report%20card-a%2B-ff3333.svg?style=flat-square)](http://goreportcard.com/report/Landoop/tableprinter) [![godoc](https://img.shields.io/badge/godoc%20-reference-0077b3.svg?style=flat-square)](https://godoc.org/github.com/Landoop/tableprinter)
-[![examples](https://img.shields.io/badge/learn%20by-examples-0c77e3.svg?style=flat-square)](https://github.com/Landoop/tableprinter/tree/master/_examples)
+[![build status](https://img.shields.io/travis/lensesio/tableprinter/master.svg?style=flat-square)](https://travis-ci.org/lensesio/tableprinter) [![report card](https://img.shields.io/badge/report%20card-a%2B-ff3333.svg?style=flat-square)](http://goreportcard.com/report/lensesio/tableprinter) [![godoc](https://img.shields.io/badge/godoc%20-reference-0077b3.svg?style=flat-square)](https://godoc.org/github.com/lensesio/tableprinter)
+[![examples](https://img.shields.io/badge/learn%20by-examples-0c77e3.svg?style=flat-square)](https://github.com/lensesio/tableprinter/tree/master/_examples)
 
 ## Installation
 
 The only requirement is the [Go Programming Language](https://golang.org/dl), at least version **1.10**.
 
 ```sh
-$ go get -u github.com/landoop/tableprinter
+$ go get -u github.com/lensesio/tableprinter
 ```
 
 ```go
@@ -25,7 +25,7 @@ import (
     "sort"
 
     "github.com/kataras/tablewriter"
-    "github.com/landoop/tableprinter"
+    "github.com/lensesio/tableprinter"
 )
 
 type person struct {

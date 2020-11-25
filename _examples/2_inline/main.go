@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/landoop/tableprinter"
+	"github.com/lensesio/tableprinter"
 )
 
 type (
